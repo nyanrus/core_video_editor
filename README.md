@@ -23,5 +23,5 @@
 - 高速化(GPU, SIMDなど)
 - バックエンドのラッパ(Unified API)
 
-Copyright(c) NyanRus 2022~2022
+Copyright(c) NyanRus 2022,
 This library has published by GPLv3 LICENSE
