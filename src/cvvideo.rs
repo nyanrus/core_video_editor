@@ -1,3 +1,19 @@
+// core_video_editor core of video editor, to develop easily
+// Copyright (C) 2022 NyanRus
+
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 use opencv::{prelude::*, videoio::{VideoCapture, CAP_FFMPEG, VideoWriter, CAP_PROP_FRAME_COUNT, CAP_PROP_POS_FRAMES, VideoWriterProperties, VideoCaptureProperties, CAP_PROP_HW_ACCELERATION, VIDEO_ACCELERATION_D3D11, CAP_PROP_HW_ACCELERATION_USE_OPENCL, VIDEO_ACCELERATION_ANY, VIDEO_ACCELERATION_MFX, VIDEO_ACCELERATION_VAAPI, VIDEO_ACCELERATION_NONE, CAP_PROP_BUFFERSIZE}, Error, core::{Vector, USAGE_DEFAULT, UMat, UMatUsageFlags, Scalar_, BORDER_TRANSPARENT, ToInputArray}, calib3d::USAC_DEFAULT, imgproc::WARP_POLAR_LINEAR};
 pub struct FrameSize {
     width:i32,
