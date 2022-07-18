@@ -32,11 +32,11 @@ opencv::not_opencv_branch_4! {
 }
 use std::time::{Duration, Instant};
 
-use crate::cvvideo::{ warp_affine};
+mod frame;
+use frame::cvvideo;
+use frame::cvvideo::*;
 
 //const ITERATIONS: usize =1000;
-
-mod cvvideo;
 
 fn main() {
     core::set_use_opencl(true).unwrap();
