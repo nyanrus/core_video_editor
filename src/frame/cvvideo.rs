@@ -15,6 +15,8 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use super::frame::*;
+use std::{mem::ManuallyDrop, rc::Weak};
+use std::rc::Rc;
 
 use opencv::{prelude::*, videoio::{VideoCapture, CAP_FFMPEG, VideoWriter, CAP_PROP_FRAME_COUNT, CAP_PROP_POS_FRAMES, VideoWriterProperties, VideoCaptureProperties, CAP_PROP_HW_ACCELERATION, VIDEO_ACCELERATION_D3D11, CAP_PROP_HW_ACCELERATION_USE_OPENCL, VIDEO_ACCELERATION_ANY, VIDEO_ACCELERATION_MFX, VIDEO_ACCELERATION_VAAPI, VIDEO_ACCELERATION_NONE, CAP_PROP_BUFFERSIZE}, Error, core::{Vector, USAGE_DEFAULT, UMat, UMatUsageFlags, Scalar_, BORDER_TRANSPARENT, ToInputArray}, calib3d::USAC_DEFAULT, imgproc::WARP_POLAR_LINEAR};
 pub struct FrameSize {
@@ -62,16 +64,28 @@ struct CvFrame {
 }
 impl FrameInterface for CvFrame{}
 impl FrameInput<Settings> for CvFrame {
-
     fn get_frame_in(&self, settings:&Settings) -> Option<Frame> {
         todo!()
     }
 }
 
+enum FrameInterfaces<T>{
+    FIn(Box<dyn FrameInput<T>>),
+    FOut(Box<dyn FrameOutput<T>>),
+    FInOut(Box<dyn FrameInOut<T>>),
+}
+
 fn a(){
-    let mut vec = Vec::<Box<dyn FrameInterface>>::new();
+    let mut vec = Vec::<Box<FrameInterfaces<Settings>>>::new();
     let a = CvFrame{f:Frame{ w: 1, h: 1, pix_vec: Vec::new() }};
-    vec.push(Box::new(a) as Box<dyn FrameInterface>);
+    vec.push(Box::new(FrameInterfaces::<Settings>::FIn(Box::new(a) as Box<dyn FrameInput<Settings>>)));
+    for i in vec {
+        match *i {
+            FrameInterfaces::FIn(_) => todo!(),
+            FrameInterfaces::FOut(_) => todo!(),
+            FrameInterfaces::FInOut(_) => todo!(),
+        }
+    }
 }
 
 pub fn get_video_frame(vc:&mut VideoCapture, frame_num:f64) -> UMat{
