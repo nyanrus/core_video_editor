@@ -62,29 +62,18 @@ pub fn get_video_writer(settings:VideoWriterSetting)->Result<VideoWriter,Error> 
 struct CvFrame {
     f:Frame,
 }
-impl FrameInterface for CvFrame{}
-impl FrameInput<Settings> for CvFrame {
-    fn get_frame_in(&self, settings:&Settings) -> Option<Frame> {
+impl FrameInterface for CvFrame{
+    fn process_frame(&self,f:Option<&Frame>) -> Result<Option<&Frame>, std::fmt::Error> {
         todo!()
     }
 }
 
-enum FrameInterfaces<T>{
-    FIn(Box<dyn FrameInput<T>>),
-    FOut(Box<dyn FrameOutput<T>>),
-    FInOut(Box<dyn FrameInOut<T>>),
-}
-
 fn a(){
-    let mut vec = Vec::<Box<FrameInterfaces<Settings>>>::new();
+    let mut vec = Vec::<Box<dyn FrameInterface>>::new();
     let a = CvFrame{f:Frame{ w: 1, h: 1, pix_vec: Vec::new() }};
-    vec.push(Box::new(FrameInterfaces::<Settings>::FIn(Box::new(a) as Box<dyn FrameInput<Settings>>)));
+    vec.push(Box::new(a) as Box<dyn FrameInterface>);
     for i in vec {
-        match *i {
-            FrameInterfaces::FIn(_) => todo!(),
-            FrameInterfaces::FOut(_) => todo!(),
-            FrameInterfaces::FInOut(_) => todo!(),
-        }
+        let a = FrameInterface::process_frame(i.as_ref(), None);
     }
 }
 
