@@ -15,9 +15,11 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use super::frame::*;
+use std::borrow::BorrowMut;
 use std::{mem::ManuallyDrop, rc::Weak};
 use std::rc::Rc;
 
+use opencv::core::AccessFlag;
 use opencv::{prelude::*, videoio::{VideoCapture, CAP_FFMPEG, VideoWriter, CAP_PROP_FRAME_COUNT, CAP_PROP_POS_FRAMES, VideoWriterProperties, VideoCaptureProperties, CAP_PROP_HW_ACCELERATION, VIDEO_ACCELERATION_D3D11, CAP_PROP_HW_ACCELERATION_USE_OPENCL, VIDEO_ACCELERATION_ANY, VIDEO_ACCELERATION_MFX, VIDEO_ACCELERATION_VAAPI, VIDEO_ACCELERATION_NONE, CAP_PROP_BUFFERSIZE}, Error, core::{Vector, USAGE_DEFAULT, UMat, UMatUsageFlags, Scalar_, BORDER_TRANSPARENT, ToInputArray}, calib3d::USAC_DEFAULT, imgproc::WARP_POLAR_LINEAR};
 pub struct FrameSize {
     width:i32,
@@ -59,21 +61,31 @@ pub fn get_video_writer(settings:VideoWriterSetting)->Result<VideoWriter,Error> 
     );
 }
 
-struct CvFrame {
+
+struct CvFrameIn {
     f:Frame,
+    vc:VideoCapture,
 }
-impl FrameInterface for CvFrame{
-    fn process_frame(&self,f:Option<&Frame>) -> Result<Option<&Frame>, std::fmt::Error> {
-        todo!()
+impl FrameInterface for CvFrameIn{
+    fn process_frame(&mut self,f:Option<&Frame>) -> Result<Option<&Frame>, std::fmt::Error> {
+        if f.is_some() {
+            panic!("f is some!!!");
+        }
+        let frame = get_video_frame(&mut self.vc, 1.);
+        let mat_frame = frame.get_mat(AccessFlag::ACCESS_READ ).unwrap();
+        let arr_frame = mat_frame.data_bytes().unwrap();
+        self.f = Frame{ w: frame.rows() as u32, h:frame.cols() as u32, pix_vec: Vec::from(arr_frame)};
+        Ok(Some(&self.f))
     }
 }
 
-fn a(){
+pub fn a(){
     let mut vec = Vec::<Box<dyn FrameInterface>>::new();
-    let a = CvFrame{f:Frame{ w: 1, h: 1, pix_vec: Vec::new() }};
+    let a = CvFrameIn{f:Frame{ w: 1, h: 1, pix_vec: Vec::new() },vc:get_video_capture("test.mp4").unwrap()};
     vec.push(Box::new(a) as Box<dyn FrameInterface>);
-    for i in vec {
-        let a = FrameInterface::process_frame(i.as_ref(), None);
+    for mut i in vec {
+        let a = FrameInterface::process_frame(i.as_mut(), None);
+        //println!("{:?}",a.unwrap());
     }
 }
 

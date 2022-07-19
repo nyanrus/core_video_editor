@@ -17,7 +17,7 @@
 use std::fmt::Error;
 
 
-
+#[derive(Debug)]
 pub struct Frame{
     pub w:u32,
     pub h:u32,
@@ -27,7 +27,7 @@ pub struct Frame{
 pub struct Settings{}
 
 pub trait FrameInterface {
-    fn process_frame(&self,f:Option<&Frame>) -> Result<Option<&Frame>,Error>;
+    fn process_frame(&mut self,f:Option<&Frame>) -> Result<Option<&Frame>,Error>;
 }
 
 // fn a() {

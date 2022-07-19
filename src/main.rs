@@ -40,19 +40,26 @@ use frame::cvvideo::*;
 
 fn main() {
     core::set_use_opencl(true).unwrap();
-    let mut vc_ref = cvvideo::get_video_capture("anim.mp4").unwrap();
-    println!("{}",vc_ref.get(CAP_PROP_FRAME_COUNT).unwrap());
-	let a = cvvideo::get_video_frame(&mut vc_ref,1.0);
-	let mut b = cvvideo::get_video_frame(&mut vc_ref,2.0);
-    let now = Instant::now();
-	println!("");
-    for c in 1..1000 {
-		print!("\r{}",c);
-		std::io::stdout().flush().unwrap();
-        warp_affine(&a, &mut b, &Mat::from_slice_2d(&[[1.,0.,0.],[0.,1.,0.]]).unwrap());//.get_umat(ACCESS_READ, UMatUsageFlags::USAGE_DEFAULT).unwrap());
-    }
-	println!("");
-    println!("{}ms", now.elapsed().as_millis());
+    // let mut vc_ref = cvvideo::get_video_capture("anim.mp4").unwrap();
+    // println!("{}",vc_ref.get(CAP_PROP_FRAME_COUNT).unwrap());
+	// let a = cvvideo::get_video_frame(&mut vc_ref,1.0);
+	// let mut b = cvvideo::get_video_frame(&mut vc_ref,2.0);
+    // let now = Instant::now();
+	// println!("");
+    // for c in 1..1000 {
+	// 	print!("\r{}",c);
+	// 	std::io::stdout().flush().unwrap();
+    //     warp_affine(&a, &mut b, &Mat::from_slice_2d(&[[1.,0.,0.],[0.,1.,0.]]).unwrap());//.get_umat(ACCESS_READ, UMatUsageFlags::USAGE_DEFAULT).unwrap());
+    // }
+	// println!("");
+    // println!("{}ms", now.elapsed().as_millis());
+
+	let now = Instant::now();
+	for c in 1..1000 {
+		cvvideo::a();
+	}
+	
+	println!("{}ms", now.elapsed().as_millis()/1000);
     //println!("{}",a.empty());
     //println!("{:?}",a);
 }
