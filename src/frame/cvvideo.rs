@@ -15,12 +15,10 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use super::frame::*;
-use std::borrow::BorrowMut;
-use std::{mem::ManuallyDrop, rc::Weak};
-use std::rc::Rc;
+
 
 use opencv::core::AccessFlag;
-use opencv::{prelude::*, videoio::{VideoCapture, CAP_FFMPEG, VideoWriter, CAP_PROP_FRAME_COUNT, CAP_PROP_POS_FRAMES, VideoWriterProperties, VideoCaptureProperties, CAP_PROP_HW_ACCELERATION, VIDEO_ACCELERATION_D3D11, CAP_PROP_HW_ACCELERATION_USE_OPENCL, VIDEO_ACCELERATION_ANY, VIDEO_ACCELERATION_MFX, VIDEO_ACCELERATION_VAAPI, VIDEO_ACCELERATION_NONE, CAP_PROP_BUFFERSIZE}, Error, core::{Vector, USAGE_DEFAULT, UMat, UMatUsageFlags, Scalar_, BORDER_TRANSPARENT, ToInputArray}, calib3d::USAC_DEFAULT, imgproc::WARP_POLAR_LINEAR};
+use opencv::{prelude::*, videoio::{VideoCapture, CAP_FFMPEG, VideoWriter, CAP_PROP_POS_FRAMES, CAP_PROP_HW_ACCELERATION_USE_OPENCL, CAP_PROP_BUFFERSIZE}, Error, core::{Vector, UMat, UMatUsageFlags, Scalar_, BORDER_TRANSPARENT, ToInputArray}, imgproc::WARP_POLAR_LINEAR};
 pub struct FrameSize {
     width:i32,
     height:i32,

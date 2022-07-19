@@ -14,15 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::{env, time, io::Write};
-
 use opencv::{
-	core::{self, UMat, UMatUsageFlags, Vector, Point2f, USAGE_DEFAULT},
-	imgcodecs,
-	imgproc,
-	prelude::*,
-	Result,
-	types, videoio::CAP_PROP_FRAME_COUNT,
+	core::{self},
 };
 opencv::opencv_branch_4! {
 	use opencv::core::AccessFlag::ACCESS_READ;
@@ -30,11 +23,11 @@ opencv::opencv_branch_4! {
 opencv::not_opencv_branch_4! {
 	use opencv::core::ACCESS_READ;
 }
-use std::time::{Duration, Instant};
+use std::time::{Instant};
 
 mod frame;
 use frame::cvvideo;
-use frame::cvvideo::*;
+
 
 //const ITERATIONS: usize =1000;
 
@@ -58,7 +51,7 @@ fn main() {
 	for c in 1..1000 {
 		cvvideo::a();
 	}
-	
+
 	println!("{}ms", now.elapsed().as_millis()/1000);
     //println!("{}",a.empty());
     //println!("{:?}",a);
