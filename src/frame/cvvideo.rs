@@ -75,6 +75,14 @@ impl FrameInterface for CvFrameIn{
         self.f = Frame{ w: frame.rows() as u32, h:frame.cols() as u32, pix_vec: Vec::from(arr_frame)};
         Ok(Some(&self.f))
     }
+
+    fn get_settings(&self) -> String {
+        todo!()
+    }
+
+    fn set_settings(&mut self,json:String) -> Result<(),String> {
+        todo!()
+    }
 }
 
 pub fn a(){
