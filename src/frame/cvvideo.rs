@@ -14,6 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use std::cell::Cell;
+use std::sync::Mutex;
+
 use super::frame::*;
 
 
@@ -61,18 +64,18 @@ pub fn get_video_writer(settings:VideoWriterSetting)->Result<VideoWriter,Error> 
 
 
 struct CvFrameIn {
-    f:Frame,
-    vc:VideoCapture,
+    f:Mutex<Frame>,
+    vc:Mutex<VideoCapture>,
 }
 impl FrameInterface for CvFrameIn{
-    fn process_frame(&mut self,f:Option<&Frame>) -> Result<Option<&Frame>, std::fmt::Error> {
+    fn process_frame(&self,f:Option<&Frame>) -> Result<Option<&Frame>, std::fmt::Error> {
         if f.is_some() {
             panic!("f is some!!!");
         }
-        let frame = get_video_frame(&mut self.vc, 1.);
+        let frame = get_video_frame(&self.vc, 1.);
         let mat_frame = frame.get_mat(AccessFlag::ACCESS_READ ).unwrap();
         let arr_frame = mat_frame.data_bytes().unwrap();
-        self.f = Frame{ w: frame.rows() as u32, h:frame.cols() as u32, pix_vec: Vec::from(arr_frame)};
+        (*self.f.lock().unwrap()) = Frame{ w: frame.rows() as u32, h:frame.cols() as u32, pix_vec: Vec::from(arr_frame)};
         Ok(Some(&self.f))
     }
 
@@ -80,14 +83,14 @@ impl FrameInterface for CvFrameIn{
         todo!()
     }
 
-    fn set_settings(&mut self,json:String) -> Result<(),String> {
+    fn set_settings(&self,json:String) -> Result<(),String> {
         todo!()
     }
 }
 
 pub fn a(){
     let mut vec = Vec::<Box<dyn FrameInterface>>::new();
-    let a = CvFrameIn{f:Frame{ w: 1, h: 1, pix_vec: Vec::new() },vc:get_video_capture("test.mp4").unwrap()};
+    let a = CvFrameIn{f:Frame{ w: 1, h: 1, pix_vec: Vec::new() },vc:Mutex::new(get_video_capture("test.mp4").unwrap())};
     vec.push(Box::new(a) as Box<dyn FrameInterface>);
     for mut i in vec {
         let a = FrameInterface::process_frame(i.as_mut(), None);
@@ -95,17 +98,18 @@ pub fn a(){
     }
 }
 
-pub fn get_video_frame(vc:&mut VideoCapture, frame_num:f64) -> UMat{
+pub fn get_video_frame(vc:&Mutex<VideoCapture>, frame_num:f64) -> UMat{
     //if frame_num != vc.get(CAP_PROP_POS_FRAMES).unwrap() {
-    vc.set(CAP_PROP_BUFFERSIZE,2.0).unwrap();
-    vc.set(CAP_PROP_POS_FRAMES, frame_num).unwrap();
+    let mut mvc = vc.lock().unwrap();
+    mvc.set(CAP_PROP_BUFFERSIZE,2.0).unwrap();
+    mvc.set(CAP_PROP_POS_FRAMES, frame_num).unwrap();
     //}
     // check if you needed is vc reach to end,
     // use Mat::empty()
     //let mut frame = Mat::default();
     let mut umat =UMat::new(UMatUsageFlags::USAGE_DEFAULT);
     //let mut umat = frame.get_umat(opencv::core::AccessFlag::ACCESS_FAST, opencv::core::UMatUsageFlags::USAGE_DEFAULT).unwrap();
-    vc.retrieve(&mut umat, 0).unwrap();
+    mvc.retrieve(&mut umat, 0).unwrap();
     //vc.read(&mut umat).unwrap();
     return umat;
 }

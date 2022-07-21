@@ -28,8 +28,8 @@ pub struct Settings{}
 
 pub trait FrameInterface {
     fn get_settings(&self) -> String; //JSON
-    fn set_settings(&mut self,json:String) -> Result<(),String>;
-    fn process_frame(&mut self,f:Option<&Frame>) -> Result<Option<&Frame>,Error>;
+    fn set_settings(&self,json:String) -> Result<(),String>;
+    fn process_frame(&self,f:Option<&Frame>) -> Result<Option<&Frame>,Error>;
 }
 
 // fn a() {
