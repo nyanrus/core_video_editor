@@ -1,5 +1,8 @@
 # core_video_editor
 
+>他のブランチで作業中
+
+ 
 保険をかけときます。
 
 1. 完成しないかもです
@@ -16,12 +19,12 @@
 たまに見に来てくれると喜びます
 
 ## hoped features of this lib
-- 描画(図形、Image)
-- レイヤーコンポジション
-- 拡張用API
-- 主要機能の分離、代替可能性
-- 高速化(GPU, SIMDなど)
-- バックエンドのラッパ(Unified API)
+- [ ] 描画(図形、Image)
+- [ ] レイヤーコンポジション
+- [ ] 拡張用API
+- [ ] 主要機能の分離、代替可能性
+- [ ] 高速化(GPU, SIMDなど)
+- [ ] バックエンドのラッパ(Unified API)
 
 Copyright(c) NyanRus 2022,
 This library has published by GPLv3 LICENSE
