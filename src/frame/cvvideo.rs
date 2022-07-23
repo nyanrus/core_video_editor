@@ -64,19 +64,17 @@ pub fn get_video_writer(settings:VideoWriterSetting)->Result<VideoWriter,Error> 
 
 
 struct CvFrameIn {
-    f:Mutex<Frame>,
     vc:Mutex<VideoCapture>,
 }
 impl FrameInterface for CvFrameIn{
-    fn process_frame(&self,f:Option<&Frame>) -> Result<Option<&Frame>, std::fmt::Error> {
+    fn process(&self,f:Option<&Frame>) -> Result<Option<Frame>, String> {
         if f.is_some() {
-            panic!("f is some!!!");
+            return Err("Frame is not Empty".to_string());
         }
         let frame = get_video_frame(&self.vc, 1.);
         let mat_frame = frame.get_mat(AccessFlag::ACCESS_READ ).unwrap();
         let arr_frame = mat_frame.data_bytes().unwrap();
-        (*self.f.lock().unwrap()) = Frame{ w: frame.rows() as u32, h:frame.cols() as u32, pix_vec: Vec::from(arr_frame)};
-        Ok(Some(&self.f))
+        Ok(Some(Frame{ w: frame.rows() as u32, h:frame.cols() as u32, pix_vec: Vec::from(arr_frame)}))
     }
 
     fn get_settings(&self) -> String {
@@ -90,10 +88,10 @@ impl FrameInterface for CvFrameIn{
 
 pub fn a(){
     let mut vec = Vec::<Box<dyn FrameInterface>>::new();
-    let a = CvFrameIn{f:Frame{ w: 1, h: 1, pix_vec: Vec::new() },vc:Mutex::new(get_video_capture("test.mp4").unwrap())};
+    let a = CvFrameIn{vc:Mutex::new(get_video_capture("test.mp4").unwrap())};
     vec.push(Box::new(a) as Box<dyn FrameInterface>);
     for mut i in vec {
-        let a = FrameInterface::process_frame(i.as_mut(), None);
+        let a = i.process(None);
         //println!("{:?}",a.unwrap());
     }
 }

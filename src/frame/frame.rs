@@ -17,7 +17,7 @@
 use std::fmt::Error;
 
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct Frame{
     pub w:u32,
     pub h:u32,
@@ -29,8 +29,9 @@ pub struct Settings{}
 pub trait FrameInterface {
     fn get_settings(&self) -> String; //JSON
     fn set_settings(&self,json:String) -> Result<(),String>;
-    fn process_frame(&self,f:Option<&Frame>) -> Result<Option<&Frame>,Error>;
+    fn process(&self,f:Option<&Frame>) -> Result<Option<Frame>,String>;
 }
+
 
 // fn a() {
 //     let a = frame{};

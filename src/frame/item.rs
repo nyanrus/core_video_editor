@@ -13,28 +13,33 @@ struct Item {
     parent:Option<Weak<RefCell<Item>>>,
 }
 
-trait ProcessFrame {
-    fn process(&self,f:Option<&Frame>) -> Result<Option<&Frame>, Error>;
-}
 
-impl ProcessFrame for Item {
-    fn process(&self,f:Option<&Frame>) -> Result<Option<&Frame>, Error> {
-        let ff = f.unwrap();
-        for i in self.vec_child {
+impl FrameInterface for Item {
+    fn process(&self,f:Option<&Frame>) -> Result<Option<Frame>, String> {
+        let mut ff = (*f.unwrap()).clone();
+        for i in &self.vec_child {
             match i {
                 Some(s) => {
-                    match *s.borrow() {
+                    match &*s.borrow() {
                         ItemChild::FI(fi) => {
-                            ff = fi.process_frame(Some(ff)).unwrap().unwrap();
+                            ff = fi.process(Some(&ff)).unwrap().unwrap();
                         },
                         ItemChild::Item(item) => {
-                            ff = item.process(Some(ff)).unwrap().unwrap();
+                            ff = item.process(Some(&ff)).unwrap().unwrap();
                         },
                     }
                 },
-                None => todo!(),
+                None => return Err("No Child".to_string()),
             }
         };
-        return todo!();
+        return Ok(Some(ff));
+    }
+
+    fn get_settings(&self) -> String {
+        todo!()
+    }
+
+    fn set_settings(&self,json:String) -> Result<(),String> {
+        todo!()
     }
 }
