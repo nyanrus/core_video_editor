@@ -14,48 +14,63 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use opencv::{
-	core::{self},
-};
-opencv::opencv_branch_4! {
-	use opencv::core::AccessFlag::ACCESS_READ;
-}
-opencv::not_opencv_branch_4! {
-	use opencv::core::ACCESS_READ;
-}
-use std::time::{Instant};
+// use opencv::{
+// 	core::{self},
+// };
+// opencv::opencv_branch_4! {
+// 	use opencv::core::AccessFlag::ACCESS_READ;
+// }
+// opencv::not_opencv_branch_4! {
+// 	use opencv::core::ACCESS_READ;
+// }
+use std::{time::{Instant}, f32::consts::PI};
 
-mod frame;
-use frame::cvvideo;
+use ffmpeg_next::sys::av_seek_frame;
+
+//mod frame;
+//use frame::cvvideo;
+
+fn main() {
+  
+  let img = image::open("7.png").unwrap();
+  let pimg=imageproc::geometric_transformations::rotate_about_center(&img.to_rgb8(), PI/2., imageproc::geometric_transformations::Interpolation::Bicubic,image::Rgb::<u8>([0,0,0]));
+  pimg.save("77.png").unwrap();
+
+  av_seek_frame()
+}
 
 
 //const ITERATIONS: usize =1000;
 
-fn main() {
-    core::set_use_opencl(true).unwrap();
-    // let mut vc_ref = cvvideo::get_video_capture("anim.mp4").unwrap();
-    // println!("{}",vc_ref.get(CAP_PROP_FRAME_COUNT).unwrap());
-	// let a = cvvideo::get_video_frame(&mut vc_ref,1.0);
-	// let mut b = cvvideo::get_video_frame(&mut vc_ref,2.0);
-    // let now = Instant::now();
-	// println!("");
-    // for c in 1..1000 {
-	// 	print!("\r{}",c);
-	// 	std::io::stdout().flush().unwrap();
-    //     warp_affine(&a, &mut b, &Mat::from_slice_2d(&[[1.,0.,0.],[0.,1.,0.]]).unwrap());//.get_umat(ACCESS_READ, UMatUsageFlags::USAGE_DEFAULT).unwrap());
-    // }
-	// println!("");
-    // println!("{}ms", now.elapsed().as_millis());
+// fn main() {
+//     core::set_use_opencl(true).unwrap();
+//     // let mut vc_ref = cvvideo::get_video_capture("anim.mp4").unwrap();
+//     // println!("{}",vc_ref.get(CAP_PROP_FRAME_COUNT).unwrap());
+// 	// let a = cvvideo::get_video_frame(&mut vc_ref,1.0);
+// 	// let mut b = cvvideo::get_video_frame(&mut vc_ref,2.0);
+//     // let now = Instant::now();
+// 	// println!("");
+//     // for c in 1..1000 {
+// 	// 	print!("\r{}",c);
+// 	// 	std::io::stdout().flush().unwrap();
+//     //     warp_affine(&a, &mut b, &Mat::from_slice_2d(&[[1.,0.,0.],[0.,1.,0.]]).unwrap());//.get_umat(ACCESS_READ, UMatUsageFlags::USAGE_DEFAULT).unwrap());
+//     // }
+// 	// println!("");
+//     // println!("{}ms", now.elapsed().as_millis());
 
-	let now = Instant::now();
-	for c in 1..1000 {
-		cvvideo::a();
-	}
+// 	let now = Instant::now();
+// 	for c in 1..1000 {
+// 		cvvideo::a();
+// 	}
 
-	println!("{}ms", now.elapsed().as_millis()/1000);
-    //println!("{}",a.empty());
-    //println!("{:?}",a);
-}
+// 	println!("{}ms", now.elapsed().as_millis()/1000);
+//     //println!("{}",a.empty());
+//     //println!("{:?}",a);
+
+//   let a = vec![1,2,3,4,5,6,7,8];
+//   let b = vec![9,10,11,12,13,14,15,16];
+//   let c = a.chunks(4).zip(b.chunks(4)).map(|(r1,g1)|r1[0]+g1[0]).to_owned();
+// }
 
 // fn main() -> Result<()> {
 // 	let img_file = env::args().nth(1).expect("Please supply image file name");
