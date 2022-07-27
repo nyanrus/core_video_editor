@@ -14,9 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::fmt::Error;
-
-
 #[derive(Debug,Clone)]
 pub struct Frame{
     pub w:u32,
@@ -31,10 +28,3 @@ pub trait FrameInterface {
     fn set_settings(&self,json:String) -> Result<(),String>;
     fn process(&self,f:Option<&Frame>) -> Result<Option<Frame>,String>;
 }
-
-
-// fn a() {
-//     let a = frame{};
-//     a.get_frame(settings{});
-//     frame::get_frame(settings);
-// }

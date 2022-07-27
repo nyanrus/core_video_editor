@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::cell::Cell;
+
 use std::sync::Mutex;
 
 use super::frame::*;
@@ -90,8 +90,8 @@ pub fn a(){
     let mut vec = Vec::<Box<dyn FrameInterface>>::new();
     let a = CvFrameIn{vc:Mutex::new(get_video_capture("test.mp4").unwrap())};
     vec.push(Box::new(a) as Box<dyn FrameInterface>);
-    for mut i in vec {
-        let a = i.process(None);
+    for i in vec {
+        let _a = i.process(None);
         //println!("{:?}",a.unwrap());
     }
 }
@@ -118,7 +118,7 @@ pub fn get_video_frame(vc:&Mutex<VideoCapture>, frame_num:f64) -> UMat{
 //     return Ok(umat);
 // }
 
-pub fn warp_affine(src:&UMat,dst:&mut UMat, M:&dyn ToInputArray) {
+pub fn warp_affine(src:&UMat,dst:&mut UMat, m:&dyn ToInputArray) {
     let dsize = dst.size().unwrap();
-    opencv::imgproc::warp_affine(src, dst, M, dsize, WARP_POLAR_LINEAR, BORDER_TRANSPARENT, Scalar_::new(0.,0.,0.,0.)).unwrap();
+    opencv::imgproc::warp_affine(src, dst, m, dsize, WARP_POLAR_LINEAR, BORDER_TRANSPARENT, Scalar_::new(0.,0.,0.,0.)).unwrap();
 }

@@ -17,3 +17,4 @@
 pub mod cvvideo;
 pub mod frame;
 pub mod item;
+pub mod manager;
