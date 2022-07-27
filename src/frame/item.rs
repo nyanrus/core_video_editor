@@ -1,4 +1,4 @@
-use std::{cell::RefCell, sync::{Arc, Mutex}, rc::Rc, borrow::Borrow};
+use std::{sync::Arc, borrow::Borrow};
 
 use ulid::Ulid;
 
@@ -12,12 +12,11 @@ pub enum ItemChild {
 pub struct Item {
     pub id:Ulid,
     pub vec_child:Vec<Arc<ItemChild>>,
-    pub parent:Option<Ulid>,
 }
 
 impl Default for Item {
     fn default() -> Self{
-        Self { id: ulid::Ulid::new() , vec_child: Vec::new(), parent: None }
+        Self { id: ulid::Ulid::new() , vec_child: Vec::new()}
     }
 }
 
