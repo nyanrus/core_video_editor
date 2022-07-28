@@ -1,19 +1,29 @@
-use std::{collections::HashMap};
+use std::{collections::HashMap, sync::Arc};
 
-use super::item::Item;
+use super::item::{Item,ItemChild};
 
 use ulid::Ulid;
 
-struct Manager {
+struct ItemManager {
     map:HashMap<Ulid,Item>
 }
 
-impl Manager {
-    fn register_item(&mut self,item:Item) {
+impl ItemManager {
+    fn add(&mut self,item:Item) {
         self.map.insert(item.id, item);
     }
 
-    fn del_item(&mut self,id:&Ulid) {
+    fn del(&mut self,id:&Ulid) {
         self.map.remove(&id);
+    }
+
+    fn set_child(&mut self,parent:&mut Item,child:Item) -> Ulid{
+        let c_id = child.id.clone();
+        parent.map_child.insert(c_id, ItemChild::Item(Box::new(child)));
+        return c_id
+    }
+
+    fn del_child(&mut self,parent:&mut Item,child_id:&Ulid) {
+        parent.map_child.remove(child_id);
     }
 }

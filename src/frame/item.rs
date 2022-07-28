@@ -1,4 +1,4 @@
-use std::{sync::Arc, borrow::Borrow};
+use std::{sync::Arc, borrow::Borrow, collections::HashMap};
 
 use ulid::Ulid;
 
@@ -6,28 +6,30 @@ use super::frame::*;
 
 pub enum ItemChild {
     FI(Box<dyn FrameInterface+Send+Sync>),
-    Item(Item),
+    Item(Box<Item>),
 }
 
 pub struct Item {
     pub id:Ulid,
-    pub vec_child:Vec<Arc<ItemChild>>,
+    pub map_child:HashMap<Ulid,ItemChild>,
+    pub layer:usize,
+    pub lr : (usize,usize),
 }
 
 impl Default for Item {
     fn default() -> Self{
-        Self { id: ulid::Ulid::new() , vec_child: Vec::new()}
+        Self { id: ulid::Ulid::new() , map_child: HashMap::new(), layer: 0, lr: (0,0) }
     }
 }
 
 impl FrameInterface for Item {
     fn process(&self,f:Option<&Frame>) -> Result<Option<Frame>, String> {
         let mut ff = (*f.unwrap()).clone();
-        if self.vec_child.len() == 0 {
+        if self.map_child.len() == 0 {
             return Err("No Child".to_string())
         }
-        for i in &self.vec_child {
-            match &*i.borrow() {
+        for (id,child) in &self.map_child {
+            match child {
                 ItemChild::FI(fi) => {
                     ff = fi.process(Some(&ff)).unwrap().unwrap();
                 },
