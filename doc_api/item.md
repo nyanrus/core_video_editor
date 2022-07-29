@@ -21,7 +21,7 @@
 ]
 ```
 
-'type は `{prefix}\_{filter_name};author`の感じになる
+'type は `{prefix}_{filter_name};author`の感じになる \
 e.g.
 
 ```
