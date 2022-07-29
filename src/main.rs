@@ -24,98 +24,45 @@
 // 	use opencv::core::ACCESS_READ;
 // }
 
+use std::io::Read;
+use std::time::{Duration, Instant};
+
 //mod frame;
 //use frame::cvvideo;
 use ffmpeg_next as ffmpeg;
+use rayon::prelude::*;
 
-fn main() -> Result<(), ffmpeg::Error> {
-  ffmpeg::init().unwrap();
+fn main() {
+    let mut a =Vec::<f32>::new();
+    let mut b =Vec::<f32>::new();
+    for i in 0..(1920*1080) {
+      a.push(0.);
+      a.push(0.);
+      a.push(0.);
+      a.push(0.5);
+      b.push(0.5);
+      b.push(0.5);
+      b.push(0.5);
+      b.push(0.5);
+    }
 
-  match ffmpeg::format::input(&std::env::args().nth(1).expect("missing file")) {
-      Ok(context) => {
-          for (k, v) in context.metadata().iter() {
-              println!("{}: {}", k, v);
-          }
+    let n = Instant::now();
 
-          if let Some(stream) = context.streams().best(ffmpeg::media::Type::Video) {
-              println!("Best video stream index: {}", stream.index());
-          }
+    let c:Vec<f32> = a.par_chunks(4).zip(b.par_chunks(4)).map(
+      |(p0,p1)|
+      [
+        (p0[0]*p0[3]+p1[0]*p1[3]*(1.-p0[3]))/(p0[3]+p1[3]*(1.-p0[3])),
+        (p0[1]*p0[3]+p1[1]*p1[3]*(1.-p0[3]))/(p0[3]+p1[3]*(1.-p0[3])),
+        (p0[2]*p0[3]+p1[2]*p1[3]*(1.-p0[3]))/(p0[3]+p1[3]*(1.-p0[3])),
+        (p0[3]+p1[3]*(1.-p0[3])),
+      ]
+    ).flatten_iter().collect();
 
-          if let Some(stream) = context.streams().best(ffmpeg::media::Type::Audio) {
-              println!("Best audio stream index: {}", stream.index());
-          }
+    // for i in 0..100 {
+    //   println!("{}",c.get(i).unwrap());
+    // }
 
-          if let Some(stream) = context.streams().best(ffmpeg::media::Type::Subtitle) {
-              println!("Best subtitle stream index: {}", stream.index());
-          }
-
-          println!(
-              "duration (seconds): {:.2}",
-              context.duration() as f64 / f64::from(ffmpeg::ffi::AV_TIME_BASE)
-          );
-
-          for stream in context.streams() {
-              println!("stream index {}:", stream.index());
-              println!("\ttime_base: {}", stream.time_base());
-              println!("\tstart_time: {}", stream.start_time());
-              println!("\tduration (stream timebase): {}", stream.duration());
-              println!(
-                  "\tduration (seconds): {:.2}",
-                  stream.duration() as f64 * f64::from(stream.time_base())
-              );
-              println!("\tframes: {}", stream.frames());
-              println!("\tdisposition: {:?}", stream.disposition());
-              println!("\tdiscard: {:?}", stream.discard());
-              println!("\trate: {}", stream.rate());
-
-              let codec = ffmpeg::codec::context::Context::from_parameters(stream.parameters())?;
-              println!("\tmedium: {:?}", codec.medium());
-              println!("\tid: {:?}", codec.id());
-
-              match codec.medium() {
-                ffmpeg::media::Type::Video => {
-                  if let Ok(video) = codec.decoder().video() {
-                      println!("\tbit_rate: {}", video.bit_rate());
-                      println!("\tmax_rate: {}", video.max_bit_rate());
-                      println!("\tdelay: {}", video.delay());
-                      println!("\tvideo.width: {}", video.width());
-                      println!("\tvideo.height: {}", video.height());
-                      println!("\tvideo.format: {:?}", video.format());
-                      println!("\tvideo.has_b_frames: {}", video.has_b_frames());
-                      println!("\tvideo.aspect_ratio: {}", video.aspect_ratio());
-                      println!("\tvideo.color_space: {:?}", video.color_space());
-                      println!("\tvideo.color_range: {:?}", video.color_range());
-                      println!("\tvideo.color_primaries: {:?}", video.color_primaries());
-                      println!(
-                          "\tvideo.color_transfer_characteristic: {:?}",
-                          video.color_transfer_characteristic()
-                      );
-                      println!("\tvideo.chroma_location: {:?}", video.chroma_location());
-                      println!("\tvideo.references: {}", video.references());
-                      println!("\tvideo.intra_dc_precision: {}", video.intra_dc_precision());
-                  }
-                },
-                ffmpeg::media::Type::Audio => {
-                  if let Ok(audio) = codec.decoder().audio() {
-                  println!("\tbit_rate: {}", audio.bit_rate());
-                  println!("\tmax_rate: {}", audio.max_bit_rate());
-                  println!("\tdelay: {}", audio.delay());
-                  println!("\taudio.rate: {}", audio.rate());
-                  println!("\taudio.channels: {}", audio.channels());
-                  println!("\taudio.format: {:?}", audio.format());
-                  println!("\taudio.frames: {}", audio.frames());
-                  println!("\taudio.align: {}", audio.align());
-                  println!("\taudio.channel_layout: {:?}", audio.channel_layout());
-                }
-              },
-              _ => {},
-            }
-          }
-      }
-
-      Err(error) => println!("error: {}", error),
-  }
-  Ok(())
+    println!("{}",n.elapsed().as_millis());
 }
 
 

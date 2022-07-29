@@ -36,8 +36,8 @@ impl FrameInterface for ItemManager {
 
     fn process(&self,f:Option<super::frame::Frame>,json:&str) -> Result<Option<super::frame::Frame>,String> {
         let mut ff : Option<super::frame::Frame> = f;
-        for i in self.map.iter() {
-          ff = (*i.1).process(ff, json)?;
+        for i in &self.map {
+          ff = i.1.process(ff, json)?;
         }
 
         return Ok(ff);
