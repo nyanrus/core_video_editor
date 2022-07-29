@@ -23,7 +23,7 @@ impl Default for Item {
 }
 
 impl FrameInterface for Item {
-    fn process(&self,f:Option<&Frame>) -> Result<Option<Frame>, String> {
+    fn process(&self,f:Option<&Frame>,json:&str) -> Result<Option<Frame>, String> {
         let mut ff = (*f.unwrap()).clone();
         if self.map_child.len() == 0 {
             return Err("No Child".to_string())
@@ -31,10 +31,10 @@ impl FrameInterface for Item {
         for (id,child) in &self.map_child {
             match child {
                 ItemChild::FI(fi) => {
-                    ff = fi.process(Some(&ff)).unwrap().unwrap();
+                    ff = fi.process(Some(&ff),json).unwrap().unwrap();
                 },
                 ItemChild::Item(item) => {
-                    ff = item.process(Some(&ff)).unwrap().unwrap();
+                    ff = item.process(Some(&ff),json).unwrap().unwrap();
                 },
             }
         };
@@ -45,7 +45,7 @@ impl FrameInterface for Item {
         todo!()
     }
 
-    fn set_settings(&self,json:String) -> Result<(),String> {
+    fn get_ulid(&self) -> Ulid {
         todo!()
     }
 }

@@ -14,6 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use ulid::Ulid;
+
 #[derive(Debug,Clone)]
 pub struct Frame{
     pub w:u32,
@@ -24,7 +26,7 @@ pub struct Frame{
 pub struct Settings{}
 
 pub trait FrameInterface {
-    fn get_settings(&self) -> String; //JSON
-    fn set_settings(&self,json:String) -> Result<(),String>;
-    fn process(&self,f:Option<&Frame>) -> Result<Option<Frame>,String>;
+    fn get_settings(&self) -> String; //JSON template
+    fn get_ulid(&self) -> Ulid;
+    fn process(&self,f:Option<&Frame>,json:&str) -> Result<Option<Frame>,String>;
 }

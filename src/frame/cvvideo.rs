@@ -22,6 +22,7 @@ use super::frame::*;
 
 use opencv::core::AccessFlag;
 use opencv::{prelude::*, videoio::{VideoCapture, CAP_FFMPEG, VideoWriter, CAP_PROP_POS_FRAMES, CAP_PROP_HW_ACCELERATION_USE_OPENCL, CAP_PROP_BUFFERSIZE}, Error, core::{Vector, UMat, UMatUsageFlags, Scalar_, BORDER_TRANSPARENT, ToInputArray}, imgproc::WARP_POLAR_LINEAR};
+use ulid::Ulid;
 pub struct FrameSize {
     width:i32,
     height:i32,
@@ -64,10 +65,15 @@ pub fn get_video_writer(settings:VideoWriterSetting)->Result<VideoWriter,Error> 
 
 
 struct CvFrameIn {
+    id:Ulid,
     vc:Mutex<VideoCapture>,
 }
 impl FrameInterface for CvFrameIn{
-    fn process(&self,f:Option<&Frame>) -> Result<Option<Frame>, String> {
+    fn get_settings(&self) -> String {
+        todo!()
+    }
+
+    fn process(&self,f:Option<&Frame>,json:&str) -> Result<Option<Frame>, String> {
         if f.is_some() {
             return Err("Frame is not Empty".to_string());
         }
@@ -77,21 +83,17 @@ impl FrameInterface for CvFrameIn{
         Ok(Some(Frame{ w: frame.rows() as u32, h:frame.cols() as u32, pix_vec: Vec::from(arr_frame)}))
     }
 
-    fn get_settings(&self) -> String {
-        todo!()
-    }
-
-    fn set_settings(&self,json:String) -> Result<(),String> {
-        todo!()
+    fn get_ulid(&self) -> ulid::Ulid {
+        self.id
     }
 }
 
 pub fn a(){
     let mut vec = Vec::<Box<dyn FrameInterface>>::new();
-    let a = CvFrameIn{vc:Mutex::new(get_video_capture("test.mp4").unwrap())};
+    let a = CvFrameIn{vc:Mutex::new(get_video_capture("test.mp4").unwrap()), id: Ulid::new() };
     vec.push(Box::new(a) as Box<dyn FrameInterface>);
     for i in vec {
-        let _a = i.process(None);
+        let _a = i.process(None,"");
         //println!("{:?}",a.unwrap());
     }
 }

@@ -17,9 +17,16 @@ impl ItemManager {
         self.map.remove(&id);
     }
 
-    fn set_child(&mut self,parent:&mut Item,child:Item) -> Ulid{
-        let c_id = child.id.clone();
-        parent.map_child.insert(c_id, ItemChild::Item(Box::new(child)));
+    fn set_child(&mut self,parent:&mut Item,child:ItemChild) -> Ulid{
+        let c_id = match &child {
+            ItemChild::FI(fi) => {
+              fi.get_ulid()
+            },
+            ItemChild::Item(item) => {
+              item.id
+            },
+        };
+        parent.map_child.insert(c_id, child);
         return c_id
     }
 
