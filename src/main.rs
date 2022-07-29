@@ -30,6 +30,7 @@ use std::time::{Duration, Instant};
 //mod frame;
 //use frame::cvvideo;
 use ffmpeg_next as ffmpeg;
+use rayon::iter::Either;
 use rayon::prelude::*;
 
 fn main() {
@@ -46,20 +47,31 @@ fn main() {
       b.push(0.5);
     }
 
+    //rayon::ThreadPoolBuilder::new().num_threads(12).build_global().unwrap();
+
+    let a= a.par_chunks_exact(4).map(|x|[x[0],x[1],x[2],x[3]]);
+    let b= b.par_chunks_exact(4).map(|x|[x[0],x[1],x[2],x[3]]);
+
+    println!("{}",rayon::current_num_threads());
+
     let n = Instant::now();
 
-    let c:Vec<f32> = a.par_chunks(4).zip(b.par_chunks(4)).map(
+    let c:Vec<[f32;4]> = a.zip(b).map(
       |(p0,p1)|
-      [
-        (p0[0]*p0[3]+p1[0]*p1[3]*(1.-p0[3]))/(p0[3]+p1[3]*(1.-p0[3])),
-        (p0[1]*p0[3]+p1[1]*p1[3]*(1.-p0[3]))/(p0[3]+p1[3]*(1.-p0[3])),
-        (p0[2]*p0[3]+p1[2]*p1[3]*(1.-p0[3]))/(p0[3]+p1[3]*(1.-p0[3])),
-        (p0[3]+p1[3]*(1.-p0[3])),
-      ]
-    ).flatten_iter().collect();
+      {
+        let b = p1[3]*(1.-p0[3]);
+        let c = p0[3]+b;
+        [
+        (p0[0]*p0[3]+p1[0]*b)/c,
+        (p0[1]*p0[3]+p1[1]*b)/c,
+        (p0[2]*p0[3]+p1[2]*b)/c,
+        c,
+        ]
+      }
+    ).collect();
 
     // for i in 0..100 {
-    //   println!("{}",c.get(i).unwrap());
+    //   println!("{:?}",c.get(i).unwrap());
     // }
 
     println!("{}",n.elapsed().as_millis());
