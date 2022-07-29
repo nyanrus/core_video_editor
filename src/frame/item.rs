@@ -23,22 +23,22 @@ impl Default for Item {
 }
 
 impl FrameInterface for Item {
-    fn process(&self,f:Option<&Frame>,json:&str) -> Result<Option<Frame>, String> {
-        let mut ff = (*f.unwrap()).clone();
+    fn process(&self,f:Option<Frame>,json:&str) -> Result<Option<Frame>, String> {
+        let mut ff = f;
         if self.map_child.len() == 0 {
             return Err("No Child".to_string())
         }
         for (id,child) in &self.map_child {
             match child {
                 ItemChild::FI(fi) => {
-                    ff = fi.process(Some(&ff),json).unwrap().unwrap();
+                    ff = fi.process(ff,json).unwrap();
                 },
                 ItemChild::Item(item) => {
-                    ff = item.process(Some(&ff),json).unwrap().unwrap();
+                    ff = item.process(ff,json).unwrap();
                 },
             }
         };
-        return Ok(Some(ff));
+        return Ok(ff);
     }
 
     fn get_settings(&self) -> String {

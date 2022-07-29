@@ -1,11 +1,31 @@
 use std::{collections::HashMap, sync::Arc};
 
-use super::item::{Item,ItemChild};
+use super::{item::{Item,ItemChild}, frame::FrameInterface};
 
 use ulid::Ulid;
 
 struct ItemManager {
-    map:HashMap<Ulid,Item>
+    id:Ulid,
+    map:HashMap<Ulid,Item>,
+}
+
+impl FrameInterface for ItemManager {
+    fn get_settings(&self) -> String {
+        todo!()
+    }
+
+    fn get_ulid(&self) -> Ulid {
+        self.id
+    }
+
+    fn process(&self,f:Option<super::frame::Frame>,json:&str) -> Result<Option<super::frame::Frame>,String> {
+        let mut ff : Option<super::frame::Frame> = f;
+        for i in self.map.iter() {
+          ff = (*i.1).process(ff, json)?;
+        }
+
+        return Ok(ff);
+    }
 }
 
 impl ItemManager {
@@ -17,7 +37,7 @@ impl ItemManager {
         self.map.remove(&id);
     }
 
-    fn set_child(&mut self,parent:&mut Item,child:ItemChild) -> Ulid{
+    fn add_child(&mut self,parent:&mut Item,child:ItemChild) -> Ulid{
         let c_id = match &child {
             ItemChild::FI(fi) => {
               fi.get_ulid()

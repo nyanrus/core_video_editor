@@ -28,5 +28,5 @@ pub struct Settings{}
 pub trait FrameInterface {
     fn get_settings(&self) -> String; //JSON template
     fn get_ulid(&self) -> Ulid;
-    fn process(&self,f:Option<&Frame>,json:&str) -> Result<Option<Frame>,String>;
+    fn process(&self,f:Option<Frame>,json:&str) -> Result<Option<Frame>,String>;
 }

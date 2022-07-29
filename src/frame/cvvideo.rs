@@ -73,7 +73,7 @@ impl FrameInterface for CvFrameIn{
         todo!()
     }
 
-    fn process(&self,f:Option<&Frame>,json:&str) -> Result<Option<Frame>, String> {
+    fn process(&self,f:Option<Frame>,json:&str) -> Result<Option<Frame>, String> {
         if f.is_some() {
             return Err("Frame is not Empty".to_string());
         }
