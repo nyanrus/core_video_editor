@@ -39,22 +39,21 @@ impl Default for Item {
 }
 
 impl FrameInterface for Item {
-    fn process(&self,f:Option<Frame>,json:&str) -> Result<Option<Frame>, String> {
-        let mut ff = f;
+    fn process(&self,f:&mut Frame,json:&str) -> bool {
         if self.map_child.len() == 0 {
-            return Err("No Child".to_string())
+            return false;
         }
         for (id,child) in &self.map_child {
             match child {
                 ItemChild::FI(fi) => {
-                    ff = fi.process(ff,json).unwrap();
+                    fi.process(f,json);
                 },
                 ItemChild::Item(item) => {
-                    ff = item.process(ff,json).unwrap();
+                    item.process(f,json);
                 },
             }
         };
-        return Ok(ff);
+        return true;
     }
 
     fn get_settings(&self) -> String {

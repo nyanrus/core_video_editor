@@ -16,7 +16,7 @@
 
 use std::collections::HashMap;
 
-use super::{item::{Item,ItemChild}, frame::FrameInterface};
+use super::{item::{Item,ItemChild}, frame::{FrameInterface, Frame}};
 
 use ulid::Ulid;
 
@@ -34,13 +34,12 @@ impl FrameInterface for ItemManager {
         self.id
     }
 
-    fn process(&self,f:Option<super::frame::Frame>,json:&str) -> Result<Option<super::frame::Frame>,String> {
-        let mut ff : Option<super::frame::Frame> = f;
+    fn process(&self,f:&mut Frame,json:&str) -> bool {
         for i in &self.map {
-          ff = i.1.process(ff, json)?;
+          i.1.process(f, json);
         }
 
-        return Ok(ff);
+        return true;
     }
 }
 
