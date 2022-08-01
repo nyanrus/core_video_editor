@@ -73,14 +73,12 @@ impl FrameInterface for CvFrameIn{
         todo!()
     }
 
-    fn process(&self,f:Option<Frame>,json:&str) -> Result<Option<Frame>, String> {
-        if f.is_some() {
-            return Err("Frame is not Empty".to_string());
-        }
+    fn process(&self,f:&mut Frame,json:&str) -> bool {
         let frame = get_video_frame(&self.vc, 1.);
         let mat_frame = frame.get_mat(AccessFlag::ACCESS_READ ).unwrap();
         let arr_frame = mat_frame.data_bytes().unwrap();
-        Ok(Some(Frame{ w: frame.rows() as u32, h:frame.cols() as u32, pix_vec: Vec::from(arr_frame)}))
+        f.vec_rgb = arr_frame.to_vec();
+        return true;
     }
 
     fn get_ulid(&self) -> ulid::Ulid {
@@ -92,8 +90,9 @@ pub fn a(){
     let mut vec = Vec::<Box<dyn FrameInterface>>::new();
     let a = CvFrameIn{vc:Mutex::new(get_video_capture("test.mp4").unwrap()), id: Ulid::new() };
     vec.push(Box::new(a) as Box<dyn FrameInterface>);
+    let mut f = Frame::init(1920, 1080);
     for i in vec {
-        let _a = i.process(None,"");
+        let _a = i.process(&mut f,"");
         //println!("{:?}",a.unwrap());
     }
 }
