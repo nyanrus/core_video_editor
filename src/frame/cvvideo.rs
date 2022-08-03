@@ -19,6 +19,8 @@ use std::sync::Mutex;
 
 use super::frame::*;
 
+use rayon::prelude::*;
+
 
 use opencv::core::AccessFlag;
 use opencv::{prelude::*, videoio::{VideoCapture, CAP_FFMPEG, VideoWriter, CAP_PROP_POS_FRAMES, CAP_PROP_HW_ACCELERATION_USE_OPENCL, CAP_PROP_BUFFERSIZE}, Error, core::{Vector, UMat, UMatUsageFlags, Scalar_, BORDER_TRANSPARENT, ToInputArray}, imgproc::WARP_POLAR_LINEAR};
@@ -39,18 +41,18 @@ pub struct VideoWriterSetting {
 
 pub fn get_video_capture(file_name:&str) -> Result<VideoCapture,Error>{
     // return VideoCapture::from_file(file_name, CAP_FFMPEG);
-    return VideoCapture::from_file_with_params(file_name, CAP_FFMPEG,&Vector::from_iter(
+    VideoCapture::from_file_with_params(file_name, CAP_FFMPEG,&Vector::from_iter(
         [
             // CAP_PROP_HW_ACCELERATION,
             // VIDEO_ACCELERATION_D3D11,
             CAP_PROP_HW_ACCELERATION_USE_OPENCL,
             1
         ]
-    ));
+    ))
 }
 
 pub fn get_video_writer(settings:VideoWriterSetting)->Result<VideoWriter,Error> {
-    return VideoWriter::new_with_backend(
+    VideoWriter::new_with_backend(
         &settings.file_name,
         settings.api_preference,
         settings.fourcc,
@@ -60,7 +62,7 @@ pub fn get_video_writer(settings:VideoWriterSetting)->Result<VideoWriter,Error> 
             height:settings.frame_size.height,
         },
         settings.is_color
-    );
+    )
 }
 
 
@@ -77,8 +79,8 @@ impl FrameInterface for CvFrameIn{
         let frame = get_video_frame(&self.vc, 1.);
         let mat_frame = frame.get_mat(AccessFlag::ACCESS_READ ).unwrap();
         let arr_frame = mat_frame.data_bytes().unwrap();
-        f.vec_rgb = arr_frame.to_vec();
-        return true;
+        f.vec_rgba = arr_frame.to_vec().par_chunks(4).map(|x|[x[0],x[1],x[2],x[3]]).collect();
+        true
     }
 
     fn get_ulid(&self) -> ulid::Ulid {
@@ -110,7 +112,7 @@ pub fn get_video_frame(vc:&Mutex<VideoCapture>, frame_num:f64) -> UMat{
     //let mut umat = frame.get_umat(opencv::core::AccessFlag::ACCESS_FAST, opencv::core::UMatUsageFlags::USAGE_DEFAULT).unwrap();
     mvc.retrieve(&mut umat, 0).unwrap();
     //vc.read(&mut umat).unwrap();
-    return umat;
+    umat
 }
 
 // pub fn blend_frame(src:&UMat,dst:&UMat,alpha:f64) -> Result<UMat,Error>{
@@ -121,5 +123,6 @@ pub fn get_video_frame(vc:&Mutex<VideoCapture>, frame_num:f64) -> UMat{
 
 pub fn warp_affine(src:&UMat,dst:&mut UMat, m:&dyn ToInputArray) {
     let dsize = dst.size().unwrap();
+    
     opencv::imgproc::warp_affine(src, dst, m, dsize, WARP_POLAR_LINEAR, BORDER_TRANSPARENT, Scalar_::new(0.,0.,0.,0.)).unwrap();
 }

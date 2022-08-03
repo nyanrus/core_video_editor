@@ -20,13 +20,12 @@ use ulid::Ulid;
 pub struct Frame{
     pub w:u32,
     pub h:u32,
-    pub vec_rgb:Vec<u8>,
-    pub vec_a:Vec<u8>,
+    pub vec_rgba:Vec<[u8;4]>,
 } // RGBA
 
 impl Frame{
   pub fn init(w:u32,h:u32) -> Self {
-    Self { w: w, h: h, vec_rgb: Vec::<u8>::with_capacity((w*h*3u32).try_into().unwrap()), vec_a: Vec::<u8>::with_capacity((w*h).try_into().unwrap()) }
+    Self { w, h, vec_rgba: Vec::<[u8;4]>::with_capacity((w*h).try_into().unwrap())}
   }
 }
 

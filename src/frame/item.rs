@@ -40,10 +40,10 @@ impl Default for Item {
 
 impl FrameInterface for Item {
     fn process(&self,f:&mut Frame,json:&str) -> bool {
-        if self.map_child.len() == 0 {
+        if self.map_child.is_empty() {
             return false;
         }
-        for (id,child) in &self.map_child {
+        self.map_child.iter().for_each(|(_id,child)| {
             match child {
                 ItemChild::FI(fi) => {
                     fi.process(f,json);
@@ -52,8 +52,8 @@ impl FrameInterface for Item {
                     item.process(f,json);
                 },
             }
-        };
-        return true;
+        });
+        true
     }
 
     fn get_settings(&self) -> String {
@@ -61,6 +61,6 @@ impl FrameInterface for Item {
     }
 
     fn get_ulid(&self) -> Ulid {
-        todo!()
+        self.id
     }
 }

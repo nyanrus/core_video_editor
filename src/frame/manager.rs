@@ -20,6 +20,8 @@ use super::{item::{Item,ItemChild}, frame::{FrameInterface, Frame}};
 
 use ulid::Ulid;
 
+use serde_json::*;
+
 struct ItemManager {
     id:Ulid,
     map:HashMap<Ulid,Item>,
@@ -27,7 +29,14 @@ struct ItemManager {
 
 impl FrameInterface for ItemManager {
     fn get_settings(&self) -> String {
-        todo!()
+        let a = serde_json::json!("[]");
+        self.map.iter().for_each(|(&i,v)|{
+          let m = Map::from_iter(HashMap::from([(i.to_string(),serde_json::from_str::<serde_json::Value>(&v.get_settings()).unwrap())]));
+          //m.insert(i.to_string(), serde_json::from_str(&v.get_settings()).unwrap());
+          let _ = a.as_array().insert(&vec![serde_json::Value::Object(m)]);
+        }
+        );
+        a.to_string()
     }
 
     fn get_ulid(&self) -> Ulid {
@@ -39,15 +48,16 @@ impl FrameInterface for ItemManager {
           i.1.process(f, json);
         }
 
-        return true;
+        true
     }
 }
 
+#[allow(dead_code)]
 impl ItemManager {
     fn add(&mut self,item:Item) -> Ulid{
-        let id = item.id.clone();
+        let id = item.id;
         self.map.insert(item.id, item);
-        return id
+        id
     }
 
     fn del(&mut self,id:&Ulid) {
@@ -60,7 +70,7 @@ impl ItemManager {
             ItemChild::Item(item) => item.id,
         };
         parent.map_child.insert(c_id, child);
-        return c_id
+        c_id
     }
 
     fn del_child(&mut self,parent:&mut Item,child_id:&Ulid) {
@@ -76,17 +86,16 @@ impl ItemManager {
     }
 
     fn mov(&mut self,id:&Ulid,layer:usize,lr:(usize,usize)) -> bool{
-        let mut collid = false;
         let collid = self.map.iter().any(|f|
           ((*f.1).layer == layer) && Self::is_collid(lr,(*f.1).lr)
         );
 
         if collid {
-          return false;
+          false
         } else {
           self.map.get_mut(id).unwrap().layer = layer;
           self.map.get_mut(id).unwrap().lr = lr;
-          return true;
+          true
         }
     }
 

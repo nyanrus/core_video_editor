@@ -24,57 +24,55 @@
 // 	use opencv::core::ACCESS_READ;
 // }
 
-use std::io::Read;
-use std::time::{Duration, Instant};
+use std::time::Instant;
 
 //mod frame;
 //use frame::cvvideo;
-use ffmpeg_next as ffmpeg;
-use rayon::iter::Either;
+
 use rayon::prelude::*;
 
 fn main() {
-    let mut a =Vec::<f32>::new();
-    let mut b =Vec::<f32>::new();
-    for i in 0..(1920*1080) {
-      a.push(0.);
-      a.push(0.);
-      a.push(0.);
-      a.push(0.5);
-      b.push(0.5);
-      b.push(0.5);
-      b.push(0.5);
-      b.push(0.5);
-    }
-
-    //rayon::ThreadPoolBuilder::new().num_threads(12).build_global().unwrap();
-
-    let a= a.par_chunks_exact(4).map(|x|[x[0],x[1],x[2],x[3]]);
-    let b= b.par_chunks_exact(4).map(|x|[x[0],x[1],x[2],x[3]]);
-
-    println!("{}",rayon::current_num_threads());
-
-    let n = Instant::now();
-
-    let c:Vec<[f32;4]> = a.zip(b).map(
-      |(p0,p1)|
-      {
-        let b = p1[3]*(1.-p0[3]);
-        let c = p0[3]+b;
-        [
-        (p0[0]*p0[3]+p1[0]*b)/c,
-        (p0[1]*p0[3]+p1[1]*b)/c,
-        (p0[2]*p0[3]+p1[2]*b)/c,
-        c,
-        ]
-      }
-    ).collect();
-
-    // for i in 0..100 {
-    //   println!("{:?}",c.get(i).unwrap());
+    // let mut a =Vec::<f32>::new();
+    // let mut b =Vec::<f32>::new();
+    // for _i in 0..(1920*1080) {
+    //   a.push(0.);
+    //   a.push(0.);
+    //   a.push(0.);
+    //   a.push(0.5);
+    //   b.push(0.5);
+    //   b.push(0.5);
+    //   b.push(0.5);
+    //   b.push(0.5);
     // }
 
-    println!("{}",n.elapsed().as_millis());
+    // //rayon::ThreadPoolBuilder::new().num_threads(12).build_global().unwrap();
+
+    // let a= a.par_chunks_exact(4).map(|x|[x[0],x[1],x[2],x[3]]);
+    // let b= b.par_chunks_exact(4).map(|x|[x[0],x[1],x[2],x[3]]);
+
+    // println!("{}",rayon::current_num_threads());
+
+    // let n = Instant::now();
+
+    // let _c:Vec<[f32;4]> = a.zip(b).map(
+    //   |(p0,p1)|
+    //   {
+    //     let b = p1[3]*(1.-p0[3]);
+    //     let c = p0[3]+b;
+    //     [
+    //     (p0[0]*p0[3]+p1[0]*b)/c,
+    //     (p0[1]*p0[3]+p1[1]*b)/c,
+    //     (p0[2]*p0[3]+p1[2]*b)/c,
+    //     c,
+    //     ]
+    //   }
+    // ).collect();
+
+    // // for i in 0..100 {
+    // //   println!("{:?}",c.get(i).unwrap());
+    // // }
+
+    // println!("{}",n.elapsed().as_millis());
 }
 
 
