@@ -17,5 +17,5 @@
 use crate::frame::frame::FrameInterface;
 
 pub trait InputInterface {
-    fn open_file(&self,file:&str) -> Option<Box<dyn FrameInterface>>;
+    fn open_file(&self, file: &str) -> Option<Box<dyn FrameInterface>>;
 }

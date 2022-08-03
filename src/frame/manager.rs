@@ -16,90 +16,91 @@
 
 use std::collections::HashMap;
 
-use super::{item::{Item,ItemChild}, frame::{FrameInterface, Frame}};
+use super::{
+    frame::{Frame, FrameInterface},
+    item::{Item, ItemChild},
+};
 
+use rayon::prelude::*;
+use serde_json as json;
 use ulid::Ulid;
 
-use serde_json::*;
-
 struct ItemManager {
-    id:Ulid,
-    map:HashMap<Ulid,Item>,
+    id: Ulid,
+    map: HashMap<Ulid, Item>,
 }
 
 impl FrameInterface for ItemManager {
-    fn get_settings(&self) -> String {
-        let a = serde_json::json!("[]");
-        self.map.iter().for_each(|(&i,v)|{
-          let m = Map::from_iter(HashMap::from([(i.to_string(),serde_json::from_str::<serde_json::Value>(&v.get_settings()).unwrap())]));
-          //m.insert(i.to_string(), serde_json::from_str(&v.get_settings()).unwrap());
-          let _ = a.as_array().insert(&vec![serde_json::Value::Object(m)]);
-        }
-        );
-        a.to_string()
+    fn get_settings(&self) -> json::Value {
+        let a = json::json!("[]");
+        self.map.iter().for_each(|(&i, v)| {
+            let m = json::Map::from_iter(HashMap::from([(i.to_string(), v.get_settings())]));
+            //m.insert(i.to_string(), json::from_str(&v.get_settings()).unwrap());
+            let _ = a.as_array().insert(&vec![json::Value::Object(m)]);
+        });
+        a
     }
 
     fn get_ulid(&self) -> Ulid {
         self.id
     }
 
-    fn process(&self,f:&mut Frame,json:&str) -> bool {
+    fn process(&self, f: &mut Frame, json: &json::Value) -> bool {
         for i in &self.map {
-          i.1.process(f, json);
+            i.1.process(f, json);
         }
-
         true
     }
 }
 
 #[allow(dead_code)]
 impl ItemManager {
-    fn add(&mut self,item:Item) -> Ulid{
-        let id = item.id;
-        self.map.insert(item.id, item);
+    fn add(&mut self, item: Item) -> Ulid {
+        let id = item.get_ulid();
+        self.map.insert(id, item);
         id
     }
 
-    fn del(&mut self,id:&Ulid) {
+    fn del(&mut self, id: &Ulid) {
         self.map.remove(id);
     }
 
-    fn add_child(&mut self,parent:&mut Item,child:ItemChild) -> Ulid{
+    fn add_child(&mut self, parent: &mut Item, child: ItemChild) -> Ulid {
         let c_id = match &child {
             ItemChild::FI(fi) => fi.get_ulid(),
-            ItemChild::Item(item) => item.id,
+            ItemChild::Item(item) => item.get_ulid(),
         };
         parent.map_child.insert(c_id, child);
         c_id
     }
 
-    fn del_child(&mut self,parent:&mut Item,child_id:&Ulid) {
+    fn del_child(&mut self, parent: &mut Item, child_id: &Ulid) {
         parent.map_child.remove(child_id);
     }
 
-    fn get(&self,id:&Ulid) -> Option<&Item>{
+    fn get(&self, id: &Ulid) -> Option<&Item> {
         self.map.get(id)
     }
 
-    fn get_mut(&mut self,id:&Ulid) -> Option<&mut Item> {
+    fn get_mut(&mut self, id: &Ulid) -> Option<&mut Item> {
         self.map.get_mut(id)
     }
 
-    fn mov(&mut self,id:&Ulid,layer:usize,lr:(usize,usize)) -> bool{
-        let collid = self.map.iter().any(|f|
-          ((*f.1).layer == layer) && Self::is_collid(lr,(*f.1).lr)
-        );
+    fn mov(&mut self, id: &Ulid, layer: usize, lr: (usize, usize)) -> bool {
+        let non_collid = !self
+            .map
+            .par_iter()
+            .any(|f| ((*f.1).layer == layer) && Self::is_collid(lr, (*f.1).lr));
 
-        if collid {
-          false
-        } else {
-          self.map.get_mut(id).unwrap().layer = layer;
-          self.map.get_mut(id).unwrap().lr = lr;
-          true
+        if non_collid {
+            let item = self.map.get_mut(id).unwrap();
+            item.layer = layer;
+            item.lr = lr;
         }
+        non_collid
     }
 
-    fn is_collid(lr1:(usize,usize),lr2:(usize,usize)) -> bool {
-      !((lr1.1 < lr2.0) || (lr2.1 < lr1.0))
+    fn is_collid(lr1: (usize, usize), lr2: (usize, usize)) -> bool {
+        !((lr1.1 < lr2.0) || (lr2.1 < lr1.0))
     }
 }

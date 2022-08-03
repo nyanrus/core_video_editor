@@ -14,25 +14,30 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use serde_json as json;
 use ulid::Ulid;
 
-#[derive(Debug,Clone)]
-pub struct Frame{
-    pub w:u32,
-    pub h:u32,
-    pub vec_rgba:Vec<[u8;4]>,
+#[derive(Debug, Clone)]
+pub struct Frame {
+    pub w: u32,
+    pub h: u32,
+    pub vec_rgba: Vec<[u8; 4]>,
 } // RGBA
 
-impl Frame{
-  pub fn init(w:u32,h:u32) -> Self {
-    Self { w, h, vec_rgba: Vec::<[u8;4]>::with_capacity((w*h).try_into().unwrap())}
-  }
+impl Frame {
+    pub fn init(w: u32, h: u32) -> Self {
+        Self {
+            w,
+            h,
+            vec_rgba: Vec::<[u8; 4]>::with_capacity((w * h).try_into().unwrap()),
+        }
+    }
 }
 
-pub struct Settings{}
+pub struct Settings {}
 
 pub trait FrameInterface {
-    fn get_settings(&self) -> String; //JSON template
+    fn get_settings(&self) -> json::Value; //JSON template
     fn get_ulid(&self) -> Ulid;
-    fn process(&self,f:&mut Frame,json:&str) -> bool;
+    fn process(&self, f: &mut Frame, json: &json::Value) -> bool;
 }

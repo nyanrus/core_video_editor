@@ -16,48 +16,60 @@
 
 use std::collections::HashMap;
 
+use serde_json as json;
 use ulid::Ulid;
 
 use super::frame::*;
 
 pub enum ItemChild {
-    FI(Box<dyn FrameInterface+Send+Sync>),
+    FI(Box<dyn FrameInterface + Send + Sync>),
     Item(Box<Item>),
 }
 
 pub struct Item {
-    pub id:Ulid,
-    pub map_child:HashMap<Ulid,ItemChild>,
-    pub layer:usize,
-    pub lr : (usize,usize),
+    pub id: Ulid,
+    pub map_child: HashMap<Ulid, ItemChild>,
+    pub layer: usize,
+    pub lr: (usize, usize),
 }
 
 impl Default for Item {
-    fn default() -> Self{
-        Self { id: ulid::Ulid::new() , map_child: HashMap::new(), layer: 0, lr: (0,0) }
+    fn default() -> Self {
+        Self {
+            id: ulid::Ulid::new(),
+            map_child: HashMap::new(),
+            layer: 0,
+            lr: (0, 0),
+        }
     }
 }
 
 impl FrameInterface for Item {
-    fn process(&self,f:&mut Frame,json:&str) -> bool {
+    fn process(&self, f: &mut Frame, json: &json::Value) -> bool {
         if self.map_child.is_empty() {
             return false;
         }
-        self.map_child.iter().for_each(|(_id,child)| {
-            match child {
-                ItemChild::FI(fi) => {
-                    fi.process(f,json);
-                },
-                ItemChild::Item(item) => {
-                    item.process(f,json);
-                },
+        self.map_child.iter().for_each(|(_id, child)| match child {
+            ItemChild::FI(fi) => {
+                fi.process(f, json);
+            }
+            ItemChild::Item(item) => {
+                item.process(f, json);
             }
         });
         true
     }
 
-    fn get_settings(&self) -> String {
-        todo!()
+    fn get_settings(&self) -> json::Value {
+        let a = json::json!("[]");
+        self.map_child.iter().for_each(|(&i, v)| match v {
+            ItemChild::FI(f) => todo!(),
+            ItemChild::Item(item) => {
+                let m = json::Map::from_iter(HashMap::from([(i.to_string(), item.get_settings())]));
+                let _ = a.as_array().insert(&vec![json::Value::Object(m)]);
+            }
+        });
+        a
     }
 
     fn get_ulid(&self) -> Ulid {
