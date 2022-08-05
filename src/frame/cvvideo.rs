@@ -17,6 +17,7 @@
 use std::sync::Mutex;
 
 use crate::io::input::InputInterface;
+use opencv::imgproc::COLOR_BGR2RGBA;
 use serde_json as json;
 
 use super::frame::*;
@@ -49,7 +50,7 @@ impl InputInterface for IOpenCV {
                 id: Ulid::new(),
                 vc: Mutex::new(o),
             }) as Box<dyn FrameInterface>),
-            Err(e) => None,
+            Err(_) => None,
         }
     }
 }
@@ -91,43 +92,33 @@ pub fn get_video_writer(settings: VideoWriterSetting) -> Result<VideoWriter, Err
     )
 }
 
-struct CvFrameIn {
-    id: Ulid,
-    vc: Mutex<VideoCapture>,
+pub struct CvFrameIn {
+    pub id: Ulid,
+    pub vc: Mutex<VideoCapture>,
 }
+
 impl FrameInterface for CvFrameIn {
     fn get_settings(&self) -> json::Value {
-        json::Value::Null
+        json::json!("{'frame_num':0}")
     }
 
     fn process(&self, f: &mut Frame, json: &json::Value) -> bool {
-        let frame = get_video_frame(&self.vc, 1.);
-        let mat_frame = frame.get_mat(AccessFlag::ACCESS_READ).unwrap();
+        println!("{:?}",json);
+        let frame = get_video_frame(&self.vc, json["frame_num"].as_u64().unwrap() as f64);
+        let mut umat = UMat::new(UMatUsageFlags::USAGE_DEFAULT);
+        opencv::imgproc::cvt_color(&frame, &mut umat, COLOR_BGR2RGBA, 4).unwrap();
+        let mat_frame = umat.get_mat(AccessFlag::ACCESS_READ).unwrap();
         let arr_frame = mat_frame.data_bytes().unwrap();
-        f.vec_rgba = arr_frame
+        (f.vec_rgb,f.vec_a) = arr_frame
             .to_vec()
             .par_chunks(4)
-            .map(|x| [x[0], x[1], x[2], x[3]])
+            .map(|x| ([x[0] as f32 / 255., x[1] as f32 / 255., x[2] as f32 / 255.], x[3] as f32 / 255.))
             .collect();
         true
     }
 
     fn get_ulid(&self) -> ulid::Ulid {
         self.id
-    }
-}
-
-pub fn a() {
-    let mut vec = Vec::<Box<dyn FrameInterface>>::new();
-    let a = CvFrameIn {
-        vc: Mutex::new(get_video_capture("test.mp4").unwrap()),
-        id: Ulid::new(),
-    };
-    vec.push(Box::new(a) as Box<dyn FrameInterface>);
-    let mut f = Frame::init(1920, 1080);
-    for i in vec {
-        let _a = i.process(&mut f, &json::Value::Null);
-        //println!("{:?}",a.unwrap());
     }
 }
 
@@ -166,4 +157,61 @@ pub fn warp_affine(src: &UMat, dst: &mut UMat, m: &dyn ToInputArray) {
         Scalar_::new(0., 0., 0., 0.),
     )
     .unwrap();
+}
+
+use crate::frame::frame::Frame;
+
+pub async fn warp_and_blend(src:&Frame,dst:&mut Frame) {
+    let s_rgb = src.vec_rgb.par_iter();
+    let s_a = src.vec_a.par_iter();
+    let d_rgb = dst.vec_rgb.par_iter_mut();
+    let d_a = dst.vec_a.par_iter_mut();
+
+    s_rgb
+    .zip(s_a)
+    .zip(d_rgb)
+    .zip(d_a)
+    .map(
+        |(((s_rgb,s_a),d_rgb),d_a)|
+        {
+                // let _s_rgb = s_rgb;
+                // let _s_a = s_a;
+                // let mut _d_rgb = d_rgb;
+                // let mut _d_a = d_a;
+                if *s_a == 0. {
+
+                } else if *s_a == 1. {
+                    *d_rgb = *s_rgb;
+                    *d_a = *s_a;
+                } else {
+                    *d_rgb = [
+                        s_rgb[0] * *s_a + d_rgb[0] * *d_a * (1.-*s_a),
+                        s_rgb[1] * *s_a + d_rgb[1] * *d_a * (1.-*s_a),
+                        s_rgb[2] * *s_a + d_rgb[2] * *d_a * (1.-*s_a),
+                    ];
+                }
+                
+                //     if _s_a == 0. {
+
+                //     } else if _s_a == 1. {
+                //         _d_rgb = _s_rgb;
+                //         _d_a = _s_a;
+                //     } else {
+                //         _d_rgb = [
+                //             _s_rgb[0] * _s_a + _d_rgb[0] * _d_a * (1.-_s_a),
+                //             _s_rgb[1] * _s_a + _d_rgb[1] * _d_a * (1.-_s_a),
+                //             _s_rgb[2] * _s_a + _d_rgb[2] * _d_a * (1.-_s_a),
+                //         ];
+                //         _d_a = 1.-_s_a;
+                //     }
+                // *d_rgb = _d_rgb;
+                // *d_a = _d_a;
+        }
+    ).collect::<()>();
+    //futures::future::join_all(tasks).await;
+    // dst.vec_rgba=d_rgb.par_iter().zip(d_a.par_iter()).map(|(x,y)|{
+    //     [x[0],x[1],x[2],*y]
+    // }).collect();
+    //warp_affine(src, dst, m);
+    
 }

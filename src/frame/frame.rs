@@ -19,17 +19,19 @@ use ulid::Ulid;
 
 #[derive(Debug, Clone)]
 pub struct Frame {
-    pub w: u32,
-    pub h: u32,
-    pub vec_rgba: Vec<[u8; 4]>,
+    pub w: usize, // almost u32 but usize is useful to make vec
+    pub h: usize,
+    pub vec_rgb: Vec<[f32; 3]>,
+    pub vec_a: Vec<f32>,
 } // RGBA
 
 impl Frame {
-    pub fn init(w: u32, h: u32) -> Self {
+    pub fn init(w: usize, h: usize) -> Self {
         Self {
             w,
             h,
-            vec_rgba: Vec::<[u8; 4]>::with_capacity((w * h).try_into().unwrap()),
+            vec_rgb: Vec::<[f32; 3]>::with_capacity(w * h),
+            vec_a: Vec::<f32>::with_capacity(w * h),
         }
     }
 }

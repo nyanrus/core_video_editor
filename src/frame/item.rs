@@ -26,6 +26,29 @@ pub enum ItemChild {
     Item(Box<Item>),
 }
 
+impl FrameInterface for ItemChild {
+    fn get_settings(&self) -> json::Value {
+        match self {
+            ItemChild::FI(fi) => fi.get_settings(),
+            ItemChild::Item(i) => i.get_settings(),
+        }
+    }
+
+    fn get_ulid(&self) -> Ulid {
+        match self {
+            ItemChild::FI(fi) => fi.get_ulid(),
+            ItemChild::Item(i) => i.get_ulid(),
+        }
+    }
+
+    fn process(&self, f: &mut Frame, json: &json::Value) -> bool {
+        match self {
+            ItemChild::FI(fi) => fi.process(f, json),
+            ItemChild::Item(i) => i.process(f, json),
+        }
+    }
+}
+
 pub struct Item {
     pub id: Ulid,
     pub map_child: HashMap<Ulid, ItemChild>,
@@ -49,14 +72,7 @@ impl FrameInterface for Item {
         if self.map_child.is_empty() {
             return false;
         }
-        self.map_child.iter().for_each(|(_id, child)| match child {
-            ItemChild::FI(fi) => {
-                fi.process(f, json);
-            }
-            ItemChild::Item(item) => {
-                item.process(f, json);
-            }
-        });
+        self.map_child.iter().for_each(|(_id, child)| {child.process(f, json);});
         true
     }
 

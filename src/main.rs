@@ -29,9 +29,33 @@ use std::time::Instant;
 //mod frame;
 //use frame::cvvideo;
 
+use core_video_editor::{frame::{cvvideo::*, frame::Frame}, io::input::InputInterface};
 use rayon::prelude::*;
+use serde_json as json;
 
-fn main() {
+#[tokio::main]
+async fn main() {
+    let a = IOpenCV{};
+    let mut f = Frame::init(1920, 1080);
+    
+    
+    let b = a.open_file("test.mp4").unwrap();
+    let now = Instant::now();
+    let b = b.process(&mut f, &json::json!({"frame_num":1}));
+    println!("{}",now.elapsed().as_millis());
+    // for i in &f.vec_rgba {
+    //     println!("{:?}",i);
+    // }
+    println!("{}",b);
+    let mut b = f.clone();
+    let now = Instant::now();
+    warp_and_blend(&f,&mut b).await;
+    println!("{}",now.elapsed().as_millis());
+
+    // for i in b.vec_rgba {
+    //     println!("{:?}",i);
+    // }
+
     // let mut a =Vec::<f32>::new();
     // let mut b =Vec::<f32>::new();
     // for _i in 0..(1920*1080) {
