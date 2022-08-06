@@ -21,8 +21,7 @@ use ulid::Ulid;
 pub struct Frame {
     pub w: usize, // almost u32 but usize is useful to make vec
     pub h: usize,
-    pub vec_rgb: Vec<[f32; 3]>,
-    pub vec_a: Vec<f32>,
+    pub vec_rgba: Vec<rgb::RGBA<f32>>,
 } // RGBA
 
 impl Frame {
@@ -30,8 +29,7 @@ impl Frame {
         Self {
             w,
             h,
-            vec_rgb: Vec::<[f32; 3]>::with_capacity(w * h),
-            vec_a: Vec::<f32>::with_capacity(w * h),
+            vec_rgba: Vec::<rgb::RGBA<f32>>::with_capacity(w*h),
         }
     }
 }

@@ -39,7 +39,7 @@ async fn main() {
     let mut f = Frame::init(1920, 1080);
     
     
-    let b = a.open_file("test.mp4").unwrap();
+    let b = a.open_file("(22-06-12_20-38-35).mkv").unwrap();
     let now = Instant::now();
     let b = b.process(&mut f, &json::json!({"frame_num":1}));
     println!("{}",now.elapsed().as_millis());

@@ -18,6 +18,7 @@ use std::sync::Mutex;
 
 use crate::io::input::InputInterface;
 use opencv::imgproc::COLOR_BGR2RGBA;
+use rgb::FromSlice;
 use serde_json as json;
 
 use super::frame::*;
@@ -109,11 +110,10 @@ impl FrameInterface for CvFrameIn {
         opencv::imgproc::cvt_color(&frame, &mut umat, COLOR_BGR2RGBA, 4).unwrap();
         let mat_frame = umat.get_mat(AccessFlag::ACCESS_READ).unwrap();
         let arr_frame = mat_frame.data_bytes().unwrap();
-        (f.vec_rgb,f.vec_a) = arr_frame
-            .to_vec()
-            .par_chunks(4)
-            .map(|x| ([x[0] as f32 / 255., x[1] as f32 / 255., x[2] as f32 / 255.], x[3] as f32 / 255.))
-            .collect();
+        f.vec_rgba = arr_frame
+            .par_iter()
+            .map(|x| *x as f32 / 255.)
+            .collect::<Vec<f32>>().as_rgba().to_owned();
         true
     }
 
@@ -162,50 +162,24 @@ pub fn warp_affine(src: &UMat, dst: &mut UMat, m: &dyn ToInputArray) {
 use crate::frame::frame::Frame;
 
 pub async fn warp_and_blend(src:&Frame,dst:&mut Frame) {
-    let s_rgb = src.vec_rgb.par_iter();
-    let s_a = src.vec_a.par_iter();
-    let d_rgb = dst.vec_rgb.par_iter_mut();
-    let d_a = dst.vec_a.par_iter_mut();
+    let s_rgba = src.vec_rgba.par_iter();
+    let d_rgba = dst.vec_rgba.par_iter_mut();
 
-    s_rgb
-    .zip(s_a)
-    .zip(d_rgb)
-    .zip(d_a)
+    s_rgba
+    .zip(d_rgba)
     .map(
-        |(((s_rgb,s_a),d_rgb),d_a)|
+        |(s_rgba,d_rgba)|
         {
-                // let _s_rgb = s_rgb;
-                // let _s_a = s_a;
-                // let mut _d_rgb = d_rgb;
-                // let mut _d_a = d_a;
-                if *s_a == 0. {
+            if s_rgba.a == 0. {
 
-                } else if *s_a == 1. {
-                    *d_rgb = *s_rgb;
-                    *d_a = *s_a;
-                } else {
-                    *d_rgb = [
-                        s_rgb[0] * *s_a + d_rgb[0] * *d_a * (1.-*s_a),
-                        s_rgb[1] * *s_a + d_rgb[1] * *d_a * (1.-*s_a),
-                        s_rgb[2] * *s_a + d_rgb[2] * *d_a * (1.-*s_a),
-                    ];
-                }
-                
-                //     if _s_a == 0. {
-
-                //     } else if _s_a == 1. {
-                //         _d_rgb = _s_rgb;
-                //         _d_a = _s_a;
-                //     } else {
-                //         _d_rgb = [
-                //             _s_rgb[0] * _s_a + _d_rgb[0] * _d_a * (1.-_s_a),
-                //             _s_rgb[1] * _s_a + _d_rgb[1] * _d_a * (1.-_s_a),
-                //             _s_rgb[2] * _s_a + _d_rgb[2] * _d_a * (1.-_s_a),
-                //         ];
-                //         _d_a = 1.-_s_a;
-                //     }
-                // *d_rgb = _d_rgb;
-                // *d_a = _d_a;
+            } else if s_rgba.a == 1. {
+                *d_rgba = *s_rgba;
+            } else {
+                d_rgba.r = s_rgba.r * s_rgba.a + d_rgba.r * d_rgba.a * (1.-s_rgba.a);
+                d_rgba.g = s_rgba.g * s_rgba.a + d_rgba.g * d_rgba.a * (1.-s_rgba.a);
+                d_rgba.b = s_rgba.b * s_rgba.a + d_rgba.b * d_rgba.a * (1.-s_rgba.a);
+                d_rgba.a *= 1.-s_rgba.a;
+            }
         }
     ).collect::<()>();
     //futures::future::join_all(tasks).await;
