@@ -21,7 +21,7 @@ use opencv::imgproc::COLOR_BGR2RGBA;
 use rgb::FromSlice;
 use serde_json as json;
 
-use super::frame::*;
+use crate::frame::*;
 
 use rayon::prelude::*;
 
@@ -104,7 +104,7 @@ impl FrameInterface for CvFrameIn {
     }
 
     fn process(&self, f: &mut Frame, json: &json::Value) -> bool {
-        println!("{:?}",json);
+        println!("{:?}", json);
         let frame = get_video_frame(&self.vc, json["frame_num"].as_u64().unwrap() as f64);
         let mut umat = UMat::new(UMatUsageFlags::USAGE_DEFAULT);
         opencv::imgproc::cvt_color(&frame, &mut umat, COLOR_BGR2RGBA, 4).unwrap();
@@ -113,7 +113,9 @@ impl FrameInterface for CvFrameIn {
         f.vec_rgba = arr_frame
             .par_iter()
             .map(|x| *x as f32 / 255.)
-            .collect::<Vec<f32>>().as_rgba().to_owned();
+            .collect::<Vec<f32>>()
+            .as_rgba()
+            .to_owned();
         true
     }
 
@@ -159,33 +161,29 @@ pub fn warp_affine(src: &UMat, dst: &mut UMat, m: &dyn ToInputArray) {
     .unwrap();
 }
 
-use crate::frame::frame::Frame;
+use crate::frame::frame::{Frame, FrameInterface};
 
-pub async fn warp_and_blend(src:&Frame,dst:&mut Frame) {
+pub async fn warp_and_blend(src: &Frame, dst: &mut Frame) {
     let s_rgba = src.vec_rgba.par_iter();
     let d_rgba = dst.vec_rgba.par_iter_mut();
 
     s_rgba
-    .zip(d_rgba)
-    .map(
-        |(s_rgba,d_rgba)|
-        {
+        .zip(d_rgba)
+        .map(|(s_rgba, d_rgba)| {
             if s_rgba.a == 0. {
-
             } else if s_rgba.a == 1. {
                 *d_rgba = *s_rgba;
             } else {
-                d_rgba.r = s_rgba.r * s_rgba.a + d_rgba.r * d_rgba.a * (1.-s_rgba.a);
-                d_rgba.g = s_rgba.g * s_rgba.a + d_rgba.g * d_rgba.a * (1.-s_rgba.a);
-                d_rgba.b = s_rgba.b * s_rgba.a + d_rgba.b * d_rgba.a * (1.-s_rgba.a);
-                d_rgba.a *= 1.-s_rgba.a;
+                d_rgba.r = s_rgba.r * s_rgba.a + d_rgba.r * d_rgba.a * (1. - s_rgba.a);
+                d_rgba.g = s_rgba.g * s_rgba.a + d_rgba.g * d_rgba.a * (1. - s_rgba.a);
+                d_rgba.b = s_rgba.b * s_rgba.a + d_rgba.b * d_rgba.a * (1. - s_rgba.a);
+                d_rgba.a *= 1. - s_rgba.a;
             }
-        }
-    ).collect::<()>();
+        })
+        .collect::<()>();
     //futures::future::join_all(tasks).await;
     // dst.vec_rgba=d_rgb.par_iter().zip(d_a.par_iter()).map(|(x,y)|{
     //     [x[0],x[1],x[2],*y]
     // }).collect();
     //warp_affine(src, dst, m);
-    
 }

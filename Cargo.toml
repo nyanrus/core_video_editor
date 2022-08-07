@@ -22,6 +22,10 @@ ulid = "0.6"
 once_cell = "1.13"
 tokio = { version = "1.20.1", features = ["full"] }
 futures = "0.3.21"
+# piston = "0.53.0"
+# piston2d-graphics = "0.42.0"
+# pistoncore-glutin_window = "0.69.0"
+# piston2d-opengl_graphics = "0.81.0"
 #photon-rs = "0.3.1"
 
 #cargo vendor lines

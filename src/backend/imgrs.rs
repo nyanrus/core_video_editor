@@ -14,7 +14,31 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-pub mod frame;
-pub mod io;
-pub mod test;
-pub mod backend;
+use crate::frame::frame::Frame;
+use crate::frame::*;
+use crate::io::*;
+use image::Rgba32FImage;
+use image::RgbaImage;
+use imageproc::geometric_transformations as geo_transform;
+use imageproc::*;
+use rayon::prelude::*;
+use rgb::ComponentBytes;
+
+pub fn a(a: &Frame, b: &Frame) {
+    let a = Rgba32FImage::from_vec(
+        1920,
+        1080,
+        a.vec_rgba
+            .par_iter()
+            .map(|x| [x.r, x.g, x.b, x.a])
+            .flatten_iter()
+            .collect(),
+    )
+    .unwrap();
+    let img = geo_transform::warp(
+        &a,
+        &geo_transform::Projection::scale(0.5, 0.5),
+        geo_transform::Interpolation::Nearest,
+        image::Rgba::<f32>([0., 0., 0., 0.]),
+    );
+}
