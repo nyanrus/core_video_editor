@@ -16,7 +16,7 @@ use std::sync::Mutex;
 use serde_json as json;
 use ulid::Ulid;
 
-use crate::frame::cvvideo::{get_video_capture, CvFrameIn};
+use crate::backend::cvvideo::{get_video_capture, CvFrameIn};
 
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.

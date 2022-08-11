@@ -29,7 +29,7 @@ use std::time::Instant;
 //mod frame;
 //use frame::cvvideo;
 
-use core_video_editor::{frame::{cvvideo::*, frame::Frame}, io::input::InputInterface};
+use core_video_editor::{frame::frame::Frame,backend::{cvvideo::*, }, io::input::InputInterface};
 use rayon::prelude::*;
 use serde_json as json;
 
