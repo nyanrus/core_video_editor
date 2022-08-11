@@ -18,7 +18,7 @@ use std::collections::HashMap;
 
 use super::{
     frame::{Frame, FrameInterface},
-    item::{Item, ItemChild},
+    item::{Item, ItemChild}, layer::Layer,
 };
 
 use rayon::prelude::*;
@@ -27,7 +27,7 @@ use ulid::Ulid;
 
 struct ItemManager {
     id: Ulid,
-    map: HashMap<Ulid, Item>,
+    map: HashMap<Ulid, Layer>,
 }
 
 impl FrameInterface for ItemManager {

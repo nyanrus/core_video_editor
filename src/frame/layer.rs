@@ -14,7 +14,19 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-pub mod frame;
-pub mod item;
-pub mod manager;
-pub mod layer;
+use std::collections::HashMap;
+
+use ulid::Ulid;
+
+use super::{frame,item};
+
+pub struct Layer {
+    pub id:Ulid,
+    pub name:String,
+    pub arr_item:HashMap<Ulid,LayerItem>,
+}
+
+pub struct LayerItem {
+    pub item: item::Item,
+    pub lr: (usize, usize),
+}

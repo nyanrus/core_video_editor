@@ -50,19 +50,15 @@ impl FrameInterface for ItemChild {
 }
 
 pub struct Item {
-    pub id: Ulid,
+    pub id:Ulid,
     pub map_child: HashMap<Ulid, ItemChild>,
-    pub layer: usize,
-    pub lr: (usize, usize),
 }
 
 impl Default for Item {
     fn default() -> Self {
         Self {
-            id: ulid::Ulid::new(),
+            id:Ulid::new(),
             map_child: HashMap::new(),
-            layer: 0,
-            lr: (0, 0),
         }
     }
 }
