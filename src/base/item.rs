@@ -41,10 +41,10 @@ impl FrameInterface for ItemChild {
         }
     }
 
-    fn process(&self, f: &mut Frame, json: &json::Value) -> bool {
+    fn process(&self, f: &mut Frame, settings:&Settings,json: &json::Value) -> bool {
         match self {
-            ItemChild::FI(fi) => fi.process(f, json),
-            ItemChild::Item(i) => i.process(f, json),
+            ItemChild::FI(fi) => fi.process(f,settings,json),
+            ItemChild::Item(i) => i.process(f,settings, json),
         }
     }
 }
@@ -63,15 +63,19 @@ impl Default for Item {
     }
 }
 
-impl FrameInterface for Item {
-    fn process(&self, f: &mut Frame, json: &json::Value) -> bool {
-        if self.map_child.is_empty() {
-            return false;
-        }
-        self.map_child.iter().for_each(|(_id, child)| {child.process(f, json);});
-        true
+impl Item {
+    fn add_child(&mut self, parent: &mut Item, child: ItemChild) -> Ulid {
+        let c_id = child.get_ulid();
+        parent.map_child.insert(c_id, child);
+        c_id
     }
 
+    fn del_child(&mut self, parent: &mut Item, child_id: &Ulid) {
+        parent.map_child.remove(child_id);
+    }
+}
+
+impl FrameInterface for Item {
     fn get_settings(&self) -> json::Value {
         let a = json::json!("[]");
         self.map_child.iter().for_each(|(&i, v)| match v {
@@ -86,5 +90,13 @@ impl FrameInterface for Item {
 
     fn get_ulid(&self) -> Ulid {
         self.id
+    }
+
+    fn process(&self, f: &mut Frame, settings:&Settings,json: &json::Value) -> bool {
+        if self.map_child.is_empty() {
+            return false;
+        }
+        self.map_child.iter().for_each(|(_id, child)| {child.process(f,settings, json);});
+        true
     }
 }

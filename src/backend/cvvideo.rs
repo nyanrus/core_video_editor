@@ -21,7 +21,7 @@ use opencv::imgproc::COLOR_BGR2RGBA;
 use rgb::FromSlice;
 use serde_json as json;
 
-use crate::frame::*;
+
 
 use rayon::prelude::*;
 
@@ -103,7 +103,7 @@ impl FrameInterface for CvFrameIn {
         json::json!("{'frame_num':0}")
     }
 
-    fn process(&self, f: &mut Frame, json: &json::Value) -> bool {
+    fn process(&self, f: &mut Frame, settings:&Settings,json: &json::Value) -> bool {
         println!("{:?}", json);
         let frame = get_video_frame(&self.vc, json["frame_num"].as_u64().unwrap() as f64);
         let mut umat = UMat::new(UMatUsageFlags::USAGE_DEFAULT);
@@ -161,7 +161,7 @@ pub fn warp_affine(src: &UMat, dst: &mut UMat, m: &dyn ToInputArray) {
     .unwrap();
 }
 
-use crate::frame::frame::{Frame, FrameInterface};
+use crate::base::frame::{Frame, FrameInterface, Settings};
 
 pub async fn warp_and_blend(src: &Frame, dst: &mut Frame) {
     let s_rgba = src.vec_rgba.par_iter();

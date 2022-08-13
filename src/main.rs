@@ -29,7 +29,7 @@ use std::time::Instant;
 //mod frame;
 //use frame::cvvideo;
 
-use core_video_editor::{frame::frame::Frame,backend::{cvvideo::*, }, io::input::InputInterface};
+use core_video_editor::{base::frame::{Frame, Settings},backend::{cvvideo::*, }, io::input::InputInterface};
 use rayon::prelude::*;
 use serde_json as json;
 
@@ -41,7 +41,7 @@ async fn main() {
     
     let b = a.open_file("(22-06-12_20-38-35).mkv").unwrap();
     let now = Instant::now();
-    let b = b.process(&mut f, &json::json!({"frame_num":1}));
+    let b = b.process(&mut f,&Settings{ frame_num: 1, w: 1920, h: 1080 }, &json::json!({"frame_num":1}));
     println!("{}",now.elapsed().as_millis());
     // for i in &f.vec_rgba {
     //     println!("{:?}",i);

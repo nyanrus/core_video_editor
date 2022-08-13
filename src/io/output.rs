@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::frame::frame::FrameInterface;
+use crate::base::frame::FrameInterface;
 
 pub trait OutputInterface {
     fn open_file(&self, file: &str) -> Option<Box<dyn FrameInterface>>;

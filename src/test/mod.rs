@@ -20,7 +20,7 @@ use crate::backend::cvvideo::{get_video_capture, CvFrameIn};
 
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
-use super::frame::frame::*;
+use super::base::frame::*;
 
 pub fn a() {
     let mut vec = Vec::<Box<dyn FrameInterface>>::new();
@@ -31,7 +31,7 @@ pub fn a() {
     vec.push(Box::new(a) as Box<dyn FrameInterface>);
     let mut f = Frame::init(1920, 1080);
     for i in vec {
-        let _a = i.process(&mut f, &json::Value::Null);
+        let _a = i.process(&mut f, &Settings { frame_num: 1, w: 1920, h: 1080 },&json::Value::Null);
         //println!("{:?}",a.unwrap());
     }
 }

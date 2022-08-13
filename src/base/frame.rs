@@ -14,7 +14,35 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-pub mod frame;
-pub mod item;
-pub mod manager;
-pub mod layer;
+use serde_json as json;
+use ulid::Ulid;
+
+#[derive(Debug, Clone)]
+pub struct Frame {
+    pub w: usize, // almost u32 but usize is useful to make vec
+    pub h: usize,
+    pub vec_rgba: Vec<rgb::RGBA<f32>>,
+} // RGBA
+
+impl Frame {
+    pub fn init(w: usize, h: usize) -> Self {
+        Self {
+            w,
+            h,
+            vec_rgba: Vec::<rgb::RGBA<f32>>::with_capacity(w*h),
+        }
+    }
+}
+
+
+pub trait FrameInterface {
+    fn get_settings(&self) -> json::Value; //JSON template
+    fn get_ulid(&self) -> Ulid;
+    fn process(&self, f: &mut Frame, settings:&Settings, json: &json::Value) -> bool;
+}
+
+pub struct Settings {
+    pub frame_num: usize,
+    pub w: usize,
+    pub h: usize,
+}
