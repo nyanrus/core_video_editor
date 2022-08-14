@@ -18,3 +18,4 @@ pub mod base;
 pub mod io;
 pub mod test;
 pub mod backend;
+pub mod manager;

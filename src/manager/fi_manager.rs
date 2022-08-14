@@ -14,8 +14,21 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::base::frame::FrameInterface;
+use crate::base::item::ItemChild;
 
-pub trait OutputInterface {
-    fn open_file(&self, file: &str) -> Option<Box<dyn FrameInterface>>;
+//FrameInterfaceInfo
+//But using Itemchild, you can use Item too
+pub struct FiInfo {
+    pub name: String,
+    pub authors: Box<[String]>,
+    pub url: Box<[String]>,
+    pub version: String,
+    pub tag: Box<[String]>,
+    pub fi: ItemChild,
+}
+
+pub struct FiManager {}
+
+impl FiManager {
+    pub fn register(&mut self, info: FiInfo) {}
 }

@@ -14,8 +14,4 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::base::frame::FrameInterface;
-
-pub trait InputInterface {
-    fn open_file(&self, file: &str) -> Option<Box<dyn FrameInterface>>;
-}
+pub mod fi_manager;

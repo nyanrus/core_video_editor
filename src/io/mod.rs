@@ -14,5 +14,17 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-pub mod input;
-pub mod output;
+use crate::base::frame::FrameInterface;
+
+pub mod input {
+    use super::FrameInterface;
+    pub trait InputInterface {
+        fn open_file(&self, file: &str) -> Option<Box<dyn FrameInterface>>;
+    }
+}
+pub mod output {
+    use super::FrameInterface;
+    pub trait OutputInterface {
+        fn open_file(&self, file: &str) -> Option<Box<dyn FrameInterface>>;
+    }
+}
