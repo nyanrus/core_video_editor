@@ -29,16 +29,15 @@ impl Frame {
         Self {
             w,
             h,
-            vec_rgba: Vec::<rgb::RGBA<f32>>::with_capacity(w*h),
+            vec_rgba: Vec::<rgb::RGBA<f32>>::with_capacity(w * h),
         }
     }
 }
 
-
 pub trait FrameInterface {
     fn get_settings(&self) -> json::Value; //JSON template
     fn get_ulid(&self) -> Ulid;
-    fn process(&self, f: &mut Frame, settings:&Settings, json: &json::Value) -> bool;
+    fn process(&self, f: &mut Frame, settings: &Settings, json: &json::Value) -> bool;
 }
 
 pub struct Settings {

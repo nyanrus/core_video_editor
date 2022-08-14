@@ -41,23 +41,23 @@ impl FrameInterface for ItemChild {
         }
     }
 
-    fn process(&self, f: &mut Frame, settings:&Settings,json: &json::Value) -> bool {
+    fn process(&self, f: &mut Frame, settings: &Settings, json: &json::Value) -> bool {
         match self {
-            ItemChild::FI(fi) => fi.process(f,settings,json),
-            ItemChild::Item(i) => i.process(f,settings, json),
+            ItemChild::FI(fi) => fi.process(f, settings, json),
+            ItemChild::Item(i) => i.process(f, settings, json),
         }
     }
 }
 
 pub struct Item {
-    pub id:Ulid,
+    pub id: Ulid,
     pub map_child: HashMap<Ulid, ItemChild>,
 }
 
 impl Default for Item {
     fn default() -> Self {
         Self {
-            id:Ulid::new(),
+            id: Ulid::new(),
             map_child: HashMap::new(),
         }
     }
@@ -92,11 +92,13 @@ impl FrameInterface for Item {
         self.id
     }
 
-    fn process(&self, f: &mut Frame, settings:&Settings,json: &json::Value) -> bool {
+    fn process(&self, f: &mut Frame, settings: &Settings, json: &json::Value) -> bool {
         if self.map_child.is_empty() {
             return false;
         }
-        self.map_child.iter().for_each(|(_id, child)| {child.process(f,settings, json);});
+        self.map_child.iter().for_each(|(_id, child)| {
+            child.process(f, settings, json);
+        });
         true
     }
 }

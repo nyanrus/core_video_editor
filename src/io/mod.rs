@@ -28,3 +28,11 @@ pub mod output {
         fn open_file(&self, file: &str) -> Option<Box<dyn FrameInterface>>;
     }
 }
+
+pub mod filter {
+    use super::FrameInterface;
+
+    pub trait FilterInterface {
+        fn get_fi(&self) -> Box<dyn FrameInterface>;
+    }
+}

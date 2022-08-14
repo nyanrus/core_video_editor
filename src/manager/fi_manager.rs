@@ -14,7 +14,13 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::base::item::ItemChild;
+use crate::io::{filter::FilterInterface, input::InputInterface, output::OutputInterface};
+
+pub enum FiChild {
+    Input(Box<dyn InputInterface>),
+    Output(Box<dyn OutputInterface>),
+    Filter(Box<dyn FilterInterface>),
+}
 
 //FrameInterfaceInfo
 //But using Itemchild, you can use Item too
@@ -24,11 +30,15 @@ pub struct FiInfo {
     pub url: Box<[String]>,
     pub version: String,
     pub tag: Box<[String]>,
-    pub fi: ItemChild,
+    pub fi: FiChild,
 }
 
-pub struct FiManager {}
+pub struct FiManager {
+    pub vec_info: Vec<FiInfo>,
+}
 
 impl FiManager {
-    pub fn register(&mut self, info: FiInfo) {}
+    pub fn register(&mut self, info: FiInfo) {
+        self.vec_info.push(info);
+    }
 }
