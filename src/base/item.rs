@@ -63,6 +63,7 @@ impl Default for Item {
     }
 }
 
+#[allow(dead_code)]
 impl Item {
     fn add_child(&mut self, parent: &mut Item, child: ItemChild) -> Ulid {
         let c_id = child.get_ulid();

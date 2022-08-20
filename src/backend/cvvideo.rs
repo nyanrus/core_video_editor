@@ -14,17 +14,18 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use std::ffi::c_void;
 use std::sync::Mutex;
 
 use crate::io::input::InputInterface;
+use crate::io::output::OutputInterface;
 use opencv::imgproc::COLOR_BGR2RGBA;
 use rgb::FromSlice;
 use serde_json as json;
 
-
-
 use rayon::prelude::*;
 
+use opencv as cv;
 use opencv::core::AccessFlag;
 use opencv::{
     core::{Scalar_, ToInputArray, UMat, UMatUsageFlags, Vector, BORDER_TRANSPARENT},
@@ -36,6 +37,7 @@ use opencv::{
     },
     Error,
 };
+
 use ulid::Ulid;
 pub struct FrameSize {
     width: i32,
@@ -45,11 +47,35 @@ pub struct FrameSize {
 pub struct IOpenCV {}
 
 impl InputInterface for IOpenCV {
-    fn open_file(&self, file: &str) -> Option<Box<dyn FrameInterface>> {
+    fn in_open_file(&self, file: &str) -> Option<Box<dyn FrameInterface>> {
         match get_video_capture(file) {
-            Ok(o) => Some(Box::new(CvFrameIn {
+            Ok(mut o) => {
+                o.set(CAP_PROP_BUFFERSIZE, 2.0).unwrap();
+                Some(Box::new(CvFrameIn {
+                    id: Ulid::new(),
+                    vc: Mutex::new(o),
+                }) as Box<dyn FrameInterface>)
+            }
+            Err(_) => None,
+        }
+    }
+}
+
+impl OutputInterface for IOpenCV {
+    fn out_open_file(&self, file: &str) -> Option<Box<dyn FrameInterface>> {
+        match get_video_writer(VideoWriterSetting {
+            file_name: file.to_string(),
+            fourcc: u32::from_ne_bytes(*(b"h264" as &[u8; 4])) as i32,
+            fps: 30.,
+            frame_size: FrameSize {
+                width: 1920,
+                height: 1080,
+            },
+            is_color: true,
+        }) {
+            Ok(o) => Some(Box::new(CvFrameOut {
                 id: Ulid::new(),
-                vc: Mutex::new(o),
+                vw: Mutex::new(o),
             }) as Box<dyn FrameInterface>),
             Err(_) => None,
         }
@@ -58,7 +84,6 @@ impl InputInterface for IOpenCV {
 
 pub struct VideoWriterSetting {
     file_name: String,
-    api_preference: i32,
     fourcc: i32,
     fps: f64,
     frame_size: FrameSize,
@@ -82,7 +107,7 @@ pub fn get_video_capture(file_name: &str) -> Result<VideoCapture, Error> {
 pub fn get_video_writer(settings: VideoWriterSetting) -> Result<VideoWriter, Error> {
     VideoWriter::new_with_backend(
         &settings.file_name,
-        settings.api_preference,
+        CAP_FFMPEG,
         settings.fourcc,
         settings.fps,
         opencv::core::Size {
@@ -103,19 +128,25 @@ impl FrameInterface for CvFrameIn {
         json::json!("{'frame_num':0}")
     }
 
-    fn process(&self, f: &mut Frame, settings:&Settings,json: &json::Value) -> bool {
-        println!("{:?}", json);
-        let frame = get_video_frame(&self.vc, json["frame_num"].as_u64().unwrap() as f64);
-        let mut umat = UMat::new(UMatUsageFlags::USAGE_DEFAULT);
-        opencv::imgproc::cvt_color(&frame, &mut umat, COLOR_BGR2RGBA, 4).unwrap();
-        let mat_frame = umat.get_mat(AccessFlag::ACCESS_READ).unwrap();
-        let arr_frame = mat_frame.data_bytes().unwrap();
+    fn process(&self, f: &mut Frame, settings: &Settings, json: &json::Value) -> bool {
+        //println!("{:?}", json);
+        let frame = get_video_frame(&self.vc, settings.frame_num as f64);
+        // println!("{}", settings.frame_num as f64);
+        // println!("{}", frame.empty());
+        if frame.empty() {
+            return false;
+        }
+        let mut mat = Mat::default();
+        opencv::imgproc::cvt_color(&frame, &mut mat, COLOR_BGR2RGBA, 4).unwrap();
+        let arr_frame = mat.data_bytes().unwrap();
+        // println!("{}", arr_frame.len());
         f.vec_rgba = arr_frame
             .par_iter()
             .map(|x| *x as f32 / 255.)
             .collect::<Vec<f32>>()
             .as_rgba()
             .to_owned();
+        // println!("{}", f.vec_rgba.len());
         true
     }
 
@@ -124,20 +155,23 @@ impl FrameInterface for CvFrameIn {
     }
 }
 
-pub fn get_video_frame(vc: &Mutex<VideoCapture>, frame_num: f64) -> UMat {
+pub fn get_video_frame(vc: &Mutex<VideoCapture>, frame_num: f64) -> Mat {
     //if frame_num != vc.get(CAP_PROP_POS_FRAMES).unwrap() {
     let mut mvc = vc.lock().unwrap();
-    mvc.set(CAP_PROP_BUFFERSIZE, 2.0).unwrap();
     mvc.set(CAP_PROP_POS_FRAMES, frame_num).unwrap();
     //}
     // check if you needed is vc reach to end,
     // use Mat::empty()
-    //let mut frame = Mat::default();
-    let mut umat = UMat::new(UMatUsageFlags::USAGE_DEFAULT);
+    let mut frame = Mat::default();
+    if mvc.get(CAP_PROP_POS_FRAMES).unwrap() != frame_num {
+        return frame;
+    }
     //let mut umat = frame.get_umat(opencv::core::AccessFlag::ACCESS_FAST, opencv::core::UMatUsageFlags::USAGE_DEFAULT).unwrap();
-    mvc.retrieve(&mut umat, 0).unwrap();
+    mvc.retrieve(&mut frame, 0).unwrap();
+
+    // println!("aaa{}", frame.data_bytes().unwrap().len());
     //vc.read(&mut umat).unwrap();
-    umat
+    frame
 }
 
 // pub fn blend_frame(src:&UMat,dst:&UMat,alpha:f64) -> Result<UMat,Error>{
@@ -186,4 +220,78 @@ pub async fn warp_and_blend(src: &Frame, dst: &mut Frame) {
     //     [x[0],x[1],x[2],*y]
     // }).collect();
     //warp_affine(src, dst, m);
+}
+
+struct CvFrameOut {
+    pub id: Ulid,
+    pub vw: Mutex<VideoWriter>,
+}
+
+impl FrameInterface for CvFrameOut {
+    fn get_settings(&self) -> json::Value {
+        todo!()
+    }
+
+    fn get_ulid(&self) -> Ulid {
+        self.id
+    }
+
+    fn process(&self, f: &mut Frame, settings: &Settings, json: &json::Value) -> bool {
+        // println!("{}", f.vec_rgba.len());
+        let mut v = f
+            .vec_rgba
+            .par_iter()
+            .map(|x| [(x.b * 255.) as u8, (x.g * 255.) as u8, (x.r * 255.) as u8])
+            .flatten_iter()
+            .collect::<Vec<u8>>();
+        //println!("{:?}", v);
+
+        //let b = Mat::from_slice(&v).unwrap();
+        // let mut dat = get_video_frame(&Mutex::new(get_video_capture("1.mp4").unwrap()), 0.)
+        //     .data_bytes()
+        //     .unwrap()
+        //     .to_vec();
+
+        let b = unsafe {
+            Mat::new_size_with_data(
+                cv::core::Size_ {
+                    width: f.w as i32,
+                    height: f.h as i32,
+                },
+                cv::core::CV_8UC3,
+                v.as_mut_ptr() as *mut c_void,
+                cv::core::Mat_AUTO_STEP,
+            )
+        }
+        .unwrap();
+        // let b = Mat::from_exact_iter(
+
+        //         .iter()
+        //         .map(|x| *x),
+        // )
+        // .unwrap();
+        // let b = Mat::from_slice::<cv::core::VecN<u8, 3>>(
+
+        //         .par_iter()
+        //         .chunks(3)
+        //         .map(|x| cv::core::VecN::<u8, 3>::from([*x[0], *x[1], *x[2]]))
+        //         .collect::<Vec<cv::core::VecN<u8, 3>>>(),
+        // )
+        // .unwrap();
+
+        // let test = b.data_bytes().unwrap();
+
+        // println!("{}", b.empty());
+
+        self.vw.lock().unwrap().write(&b).unwrap();
+        //self.vw.lock().unwrap().release().unwrap();
+        true
+    }
+}
+
+impl Drop for CvFrameOut {
+    fn drop(&mut self) {
+        let mut a = self.vw.lock().unwrap();
+        a.release().unwrap();
+    }
 }

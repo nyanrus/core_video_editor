@@ -16,15 +16,17 @@
 
 use std::collections::HashMap;
 
-use rayon::prelude::ParallelExtend;
 use ulid::Ulid;
 
-use super::{frame::{self, FrameInterface},item::{self, ItemChild},item::Item};
+use super::{
+    frame::{self, FrameInterface},
+    item,
+};
 
 pub struct Layer {
-    pub id:Ulid,
-    pub name:String,
-    pub map_item:HashMap<Ulid,LayerItem>,
+    pub id: Ulid,
+    pub name: String,
+    pub map_item: HashMap<Ulid, LayerItem>,
 }
 
 pub struct LayerItem {
@@ -32,12 +34,17 @@ pub struct LayerItem {
     pub lr: (usize, usize),
 }
 
+#[allow(dead_code)]
 impl Layer {
-    fn get_item_by_num(&self,frame_num:usize) -> Option<&Ulid> {
-        return match self.map_item.iter().find(|(id,item)|item.lr.0 <= frame_num && item.lr.1 > frame_num) {
+    fn get_item_by_num(&self, frame_num: usize) -> Option<&Ulid> {
+        return match self
+            .map_item
+            .iter()
+            .find(|(id, item)| item.lr.0 <= frame_num && item.lr.1 > frame_num)
+        {
             Some(s) => Some(s.0),
             None => None,
-        }
+        };
     }
 
     fn add(&mut self, layer_item: LayerItem) -> Ulid {
@@ -59,10 +66,7 @@ impl Layer {
     }
 
     fn mov(&mut self, id: &Ulid, layer: usize, lr: (usize, usize)) -> bool {
-        let non_collid = !self
-            .map_item
-            .iter()
-            .any(|f| Self::is_collid(lr, (*f.1).lr));
+        let non_collid = !self.map_item.iter().any(|f| Self::is_collid(lr, f.1.lr));
 
         if non_collid {
             let item = self.map_item.get_mut(id).unwrap();
@@ -85,12 +89,17 @@ impl FrameInterface for Layer {
         self.id
     }
 
-    fn process(&self, f: &mut frame::Frame, settings:&frame::Settings, json: &serde_json::Value) -> bool {
+    fn process(
+        &self,
+        f: &mut frame::Frame,
+        settings: &frame::Settings,
+        json: &serde_json::Value,
+    ) -> bool {
         match self.get_item_by_num(settings.frame_num) {
             Some(s) => {
-                let a : &LayerItem = &self.map_item[s];
+                let a: &LayerItem = &self.map_item[s];
                 a.item.process(f, settings, json)
-            },
+            }
             None => false,
         }
     }

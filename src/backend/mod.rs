@@ -14,10 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#[deprecated]
 pub mod cvvideo;
 
-#[deprecated]
-pub mod imgrs;
+// #[deprecated]
+// pub mod imgrs;
 
-pub mod wgpu;
+// pub mod wgpu;

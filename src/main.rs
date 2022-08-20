@@ -24,164 +24,118 @@
 // 	use opencv::core::ACCESS_READ;
 // }
 
-use std::time::Instant;
+use opencv::{
+    prelude::MatTraitConstManual,
+    videoio::{VideoWriter, VideoWriterTrait, CAP_FFMPEG},
+};
+use rgb::{ComponentBytes, FromSlice};
+use std::{sync::Mutex, time::Instant};
 
 //mod frame;
 //use frame::cvvideo;
 
-use core_video_editor::{base::frame::{Frame, Settings},backend::{cvvideo::*, }, io::input::InputInterface};
+use core_video_editor::{
+    backend::cvvideo::*,
+    base::frame::{Frame, Settings},
+    io::{input::InputInterface, output::OutputInterface},
+};
 use rayon::prelude::*;
 use serde_json as json;
 
-#[tokio::main]
-async fn main() {
-    let a = IOpenCV{};
+fn main() {
+    let a = IOpenCV {};
     let mut f = Frame::init(1920, 1080);
-    
-    
-    let b = a.open_file("(22-06-12_20-38-35).mkv").unwrap();
+
+    let b = a.in_open_file("1.mp4").unwrap();
     let now = Instant::now();
-    let b = b.process(&mut f,&Settings{ frame_num: 1, w: 1920, h: 1080 }, &json::json!({"frame_num":1}));
-    println!("{}",now.elapsed().as_millis());
-    // for i in &f.vec_rgba {
-    //     println!("{:?}",i);
-    // }
-    println!("{}",b);
-    let mut b = f.clone();
-    let now = Instant::now();
-    warp_and_blend(&f,&mut b).await;
-    println!("{}",now.elapsed().as_millis());
+    let mut i = 0;
 
-    // for i in b.vec_rgba {
-    //     println!("{:?}",i);
-    // }
+    b.process(
+        &mut f,
+        &Settings {
+            frame_num: 0,
+            w: 1920,
+            h: 1080,
+        },
+        &json::json!({}),
+    );
 
-    // let mut a =Vec::<f32>::new();
-    // let mut b =Vec::<f32>::new();
-    // for _i in 0..(1920*1080) {
-    //   a.push(0.);
-    //   a.push(0.);
-    //   a.push(0.);
-    //   a.push(0.5);
-    //   b.push(0.5);
-    //   b.push(0.5);
-    //   b.push(0.5);
-    //   b.push(0.5);
-    // }
+    let v = a.out_open_file("2.mp4").unwrap();
+    loop {
+        let b = b.process(
+            &mut f,
+            &Settings {
+                frame_num: i,
+                w: 1920,
+                h: 1080,
+            },
+            &json::json!({}),
+        );
+        // println!("{} {}", i, b);
+        if !b {
+            break;
+        }
+        v.process(
+            &mut f,
+            &Settings {
+                frame_num: 0,
+                w: 1920,
+                h: 1080,
+            },
+            &json::json!({}),
+        );
+        i += 1;
+    }
+    //drop(v);
 
-    // //rayon::ThreadPoolBuilder::new().num_threads(12).build_global().unwrap();
+    // let ddd = get_video_capture("1.mp4").unwrap();
 
-    // let a= a.par_chunks_exact(4).map(|x|[x[0],x[1],x[2],x[3]]);
-    // let b= b.par_chunks_exact(4).map(|x|[x[0],x[1],x[2],x[3]]);
+    // // let mut vw = opencv::videoio::VideoWriter::default().unwrap();
+    // // println!(
+    // //     "{}",
+    // //     vw.open(
+    // //         "2.mp4",
+    // //         i32::from_ne_bytes(*b"mp4v"),
+    // //         30.,
+    // //         opencv::core::Size {
+    // //             width: 1920,
+    // //             height: 1080,
+    // //         },
+    // //         true,
+    // //     )
+    // //     .unwrap()
+    // // );
 
-    // println!("{}",rayon::current_num_threads());
+    // let o = a.out_open_file("2.mp4").unwrap();
 
-    // let n = Instant::now();
+    // o.process(
+    //     &mut Frame {
+    //         w: 1920,
+    //         h: 1080,
+    //         vec_rgba: get_video_frame(&Mutex::new(ddd), 0.)
+    //             .data_bytes()
+    //             .unwrap()
+    //             .par_iter()
+    //             .map(|x| *x as f32 / 255.)
+    //             .chunks(3)
+    //             .map(|x| [x[2], x[1], x[0], 1.])
+    //             .flatten_iter()
+    //             .collect::<Vec<f32>>()
+    //             .as_rgba()
+    //             .to_vec(),
+    //     },
+    //     &Settings {
+    //         frame_num: 0,
+    //         w: 1920,
+    //         h: 1080,
+    //     },
+    //     &json::json!({}),
+    // );
+    // drop(o);
 
-    // let _c:Vec<[f32;4]> = a.zip(b).map(
-    //   |(p0,p1)|
-    //   {
-    //     let b = p1[3]*(1.-p0[3]);
-    //     let c = p0[3]+b;
-    //     [
-    //     (p0[0]*p0[3]+p1[0]*b)/c,
-    //     (p0[1]*p0[3]+p1[1]*b)/c,
-    //     (p0[2]*p0[3]+p1[2]*b)/c,
-    //     c,
-    //     ]
-    //   }
-    // ).collect();
+    //vw.open(filename, fourcc, fps, frame_size, is_color)
 
-    // // for i in 0..100 {
-    // //   println!("{:?}",c.get(i).unwrap());
-    // // }
+    //vw.write().unwrap();
 
-    // println!("{}",n.elapsed().as_millis());
+    //vw.release().unwrap();
 }
-
-//const ITERATIONS: usize =1000;
-
-// fn main() {
-//     core::set_use_opencl(true).unwrap();
-//     // let mut vc_ref = cvvideo::get_video_capture("anim.mp4").unwrap();
-//     // println!("{}",vc_ref.get(CAP_PROP_FRAME_COUNT).unwrap());
-// 	// let a = cvvideo::get_video_frame(&mut vc_ref,1.0);
-// 	// let mut b = cvvideo::get_video_frame(&mut vc_ref,2.0);
-//     // let now = Instant::now();
-// 	// println!("");
-//     // for c in 1..1000 {
-// 	// 	print!("\r{}",c);
-// 	// 	std::io::stdout().flush().unwrap();
-//     //     warp_affine(&a, &mut b, &Mat::from_slice_2d(&[[1.,0.,0.],[0.,1.,0.]]).unwrap());//.get_umat(ACCESS_READ, UMatUsageFlags::USAGE_DEFAULT).unwrap());
-//     // }
-// 	// println!("");
-//     // println!("{}ms", now.elapsed().as_millis());
-
-// 	let now = Instant::now();
-// 	for c in 1..1000 {
-// 		cvvideo::a();
-// 	}
-
-// 	println!("{}ms", now.elapsed().as_millis()/1000);
-//     //println!("{}",a.empty());
-//     //println!("{:?}",a);
-
-//   let a = vec![1,2,3,4,5,6,7,8];
-//   let b = vec![9,10,11,12,13,14,15,16];
-//   let c = a.chunks(4).zip(b.chunks(4)).map(|(r1,g1)|r1[0]+g1[0]).to_owned();
-// }
-
-// fn main() -> Result<()> {
-// 	let img_file = env::args().nth(1).expect("Please supply image file name");
-// 	let opencl_have = core::have_opencl()?;
-// 	if opencl_have {
-// 		core::set_use_opencl(true)?;
-// 		let mut platforms = types::VectorOfPlatformInfo::new();
-// 		core::get_platfoms_info(&mut platforms)?;
-// 		for (platf_num, platform) in platforms.into_iter().enumerate() {
-// 			println!("Platform #{}: {}", platf_num, platform.name()?);
-// 			for dev_num in 0..platform.device_number()? {
-// 				let mut dev = core::Device::default();
-// 				platform.get_device(&mut dev, dev_num)?;
-// 				println!("  OpenCL device #{}: {}", dev_num, dev.name()?);
-// 				println!("    vendor:  {}", dev.vendor_name()?);
-// 				println!("    version: {}", dev.version()?);
-// 			}
-// 		}
-// 	}
-// 	let opencl_use = core::use_opencl()?;
-// 	println!(
-// 		"OpenCL is {} and {}",
-// 		if opencl_have { "available" } else { "not available" },
-// 		if opencl_use { "enabled" } else { "disabled" },
-// 	);
-// 	// println!("Timing CPU implementation... ");
-// 	// let img = imgcodecs::imread(&img_file, imgcodecs::IMREAD_COLOR)?;
-// 	// let start = time::Instant::now();
-// 	// for _ in 0..ITERATIONS {
-// 	// 	let mut gray = Mat::default();
-// 	// 	imgproc::cvt_color(&img, &mut gray, imgproc::COLOR_BGR2GRAY, 0)?;
-// 	// 	let mut blurred = Mat::default();
-// 	// 	imgproc::gaussian_blur(&gray, &mut blurred, core::Size::new(7, 7), 1.5, 0., core::BORDER_DEFAULT)?;
-// 	// 	let mut edges = Mat::default();
-// 	// 	imgproc::canny(&blurred, &mut edges, 0., 50., 3, false)?;
-// 	// }
-// 	// println!("{:#?}", start.elapsed());
-// 	if opencl_use {
-// 		println!("Timing OpenCL implementation... ");
-// 		let mat = imgcodecs::imread(&img_file, imgcodecs::IMREAD_COLOR)?;
-// 		let img = mat.get_umat(ACCESS_READ, UMatUsageFlags::USAGE_DEFAULT)?;
-// 		let start = time::Instant::now();
-// 		for _ in 0..ITERATIONS {
-// 			let mut gray = UMat::new(UMatUsageFlags::USAGE_DEFAULT);
-// 			imgproc::cvt_color(&img, &mut gray, imgproc::COLOR_BGR2GRAY, 0)?;
-// 			let mut blurred = UMat::new(UMatUsageFlags::USAGE_DEFAULT);
-// 			imgproc::gaussian_blur(&gray, &mut blurred, core::Size::new(7, 7), 1.5, 0., core::BORDER_DEFAULT)?;
-// 			let mut edges = UMat::new(UMatUsageFlags::USAGE_DEFAULT);
-// 			imgproc::canny(&blurred, &mut edges, 0., 50., 3, false)?;
-//             let result = edges.get_mat(ACCESS_READ ).unwrap();
-// 		}
-// 		println!("{:#?}", start.elapsed());
-// 	}
-// 	Ok(())
-// }

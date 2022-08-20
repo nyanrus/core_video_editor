@@ -19,13 +19,13 @@ use crate::base::frame::FrameInterface;
 pub mod input {
     use super::FrameInterface;
     pub trait InputInterface {
-        fn open_file(&self, file: &str) -> Option<Box<dyn FrameInterface>>;
+        fn in_open_file(&self, file: &str) -> Option<Box<dyn FrameInterface>>;
     }
 }
 pub mod output {
     use super::FrameInterface;
     pub trait OutputInterface {
-        fn open_file(&self, file: &str) -> Option<Box<dyn FrameInterface>>;
+        fn out_open_file(&self, file: &str) -> Option<Box<dyn FrameInterface>>;
     }
 }
 

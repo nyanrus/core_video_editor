@@ -17,10 +17,10 @@
 use std::collections::HashMap;
 
 use super::{
-    frame::{Frame, FrameInterface}, layer::Layer,
+    frame::{Frame, FrameInterface},
+    layer::Layer,
 };
 
-use rayon::prelude::*;
 use serde_json as json;
 use ulid::Ulid;
 
@@ -44,12 +44,15 @@ impl FrameInterface for Scene {
         self.id
     }
 
-    fn process(&self, f: &mut Frame, settings:&super::frame::Settings, json: &json::Value) -> bool {
+    fn process(
+        &self,
+        f: &mut Frame,
+        settings: &super::frame::Settings,
+        json: &json::Value,
+    ) -> bool {
         for i in &self.map {
-            i.1.process(f, settings,json);
+            i.1.process(f, settings, json);
         }
         true
     }
 }
-
-
