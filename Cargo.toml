@@ -23,18 +23,13 @@ ulid = "1.0"
 once_cell = "1.13"
 tokio = { version = "1.20.1", features = ["full"] }
 futures = "0.3.21"
-
+# nalgebra = "0.31.1"
+micromath = "2.0.0"
+# fast_fp = "0.1.3"
+# cv-convert = {version = '0.20.0', features = ['full']}
 # wgpu = "0.13.1"
 #nannou = "0.18"
-# piston = "0.53.0"
-# piston2d-graphics = "0.42.0"
-# pistoncore-glutin_window = "0.69.0"
-# piston2d-opengl_graphics = "0.81.0"
-#photon-rs = "0.3.1"
 
-[dependencies.cv-convert]
-version = '0.20.0'
-features = ['full']
 
 #cargo vendor lines
 [source.crates-io]

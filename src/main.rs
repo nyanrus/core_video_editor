@@ -24,12 +24,7 @@
 // 	use opencv::core::ACCESS_READ;
 // }
 
-use opencv::{
-    prelude::MatTraitConstManual,
-    videoio::{VideoWriter, VideoWriterTrait, CAP_FFMPEG},
-};
-use rgb::{ComponentBytes, FromSlice};
-use std::{sync::Mutex, time::Instant};
+use std::time::Instant;
 
 //mod frame;
 //use frame::cvvideo;
@@ -43,6 +38,21 @@ use rayon::prelude::*;
 use serde_json as json;
 
 fn main() {
+    test_calc();
+}
+
+fn test_calc() {
+    println!("");
+    let mut a = Vec::new();
+    for i in 0..2_073_600_000 {
+        a.push(i as f32 / 255.);
+        //print!("{}", i as f32 / 100_555.);
+    }
+    println!("{:?}", a);
+    println!("end");
+}
+
+fn test_opencv() {
     let a = IOpenCV {};
     let mut f = Frame::init(1920, 1080);
 
@@ -50,19 +60,9 @@ fn main() {
     let now = Instant::now();
     let mut i = 0;
 
-    b.process(
-        &mut f,
-        &Settings {
-            frame_num: 0,
-            w: 1920,
-            h: 1080,
-        },
-        &json::json!({}),
-    );
-
     let v = a.out_open_file("2.mp4").unwrap();
     loop {
-        let b = b.process(
+        let c = b.process(
             &mut f,
             &Settings {
                 frame_num: i,
@@ -71,8 +71,8 @@ fn main() {
             },
             &json::json!({}),
         );
-        // println!("{} {}", i, b);
-        if !b {
+        println!("{} {}", i, c);
+        if !c {
             break;
         }
         v.process(
@@ -86,56 +86,4 @@ fn main() {
         );
         i += 1;
     }
-    //drop(v);
-
-    // let ddd = get_video_capture("1.mp4").unwrap();
-
-    // // let mut vw = opencv::videoio::VideoWriter::default().unwrap();
-    // // println!(
-    // //     "{}",
-    // //     vw.open(
-    // //         "2.mp4",
-    // //         i32::from_ne_bytes(*b"mp4v"),
-    // //         30.,
-    // //         opencv::core::Size {
-    // //             width: 1920,
-    // //             height: 1080,
-    // //         },
-    // //         true,
-    // //     )
-    // //     .unwrap()
-    // // );
-
-    // let o = a.out_open_file("2.mp4").unwrap();
-
-    // o.process(
-    //     &mut Frame {
-    //         w: 1920,
-    //         h: 1080,
-    //         vec_rgba: get_video_frame(&Mutex::new(ddd), 0.)
-    //             .data_bytes()
-    //             .unwrap()
-    //             .par_iter()
-    //             .map(|x| *x as f32 / 255.)
-    //             .chunks(3)
-    //             .map(|x| [x[2], x[1], x[0], 1.])
-    //             .flatten_iter()
-    //             .collect::<Vec<f32>>()
-    //             .as_rgba()
-    //             .to_vec(),
-    //     },
-    //     &Settings {
-    //         frame_num: 0,
-    //         w: 1920,
-    //         h: 1080,
-    //     },
-    //     &json::json!({}),
-    // );
-    // drop(o);
-
-    //vw.open(filename, fourcc, fps, frame_size, is_color)
-
-    //vw.write().unwrap();
-
-    //vw.release().unwrap();
 }
