@@ -16,6 +16,8 @@
 
 pub mod cvvideo;
 
+pub mod ffmpeg;
+
 // #[deprecated]
 // pub mod imgrs;
 

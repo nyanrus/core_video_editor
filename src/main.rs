@@ -24,11 +24,15 @@
 // 	use opencv::core::ACCESS_READ;
 // }
 
+// use duct::cmd;
+use std::io::BufReader;
 use std::time::Instant;
+use std::{io::prelude::*, process::Stdio};
 
 //mod frame;
 //use frame::cvvideo;
 
+use anyhow::Result;
 use core_video_editor::{
     backend::cvvideo::*,
     base::frame::{Frame, Settings},
@@ -38,18 +42,21 @@ use rayon::prelude::*;
 use serde_json as json;
 
 fn main() {
-    test_calc();
+    test_opencv();
 }
 
 fn test_calc() {
-    println!("");
-    let mut a = Vec::new();
-    for i in 0..2_073_600_000 {
-        a.push(i as f32 / 255.);
-        //print!("{}", i as f32 / 100_555.);
-    }
-    println!("{:?}", a);
-    println!("end");
+    println!();
+    let mut a = Vec::<f32>::with_capacity(1920 * 1080);
+    let now = Instant::now();
+    (0..2_073_600)
+        .into_iter()
+        .for_each(|i| a.push(i as f32 / 255.));
+    //let b = i as f32 / 255.;
+
+    //print!("{}", i as f32 / 100_555.);
+    //println!("{:?}", a);
+    println!("{}", now.elapsed().as_millis());
 }
 
 fn test_opencv() {
@@ -61,16 +68,22 @@ fn test_opencv() {
     let mut i = 0;
 
     let v = a.out_open_file("2.mp4").unwrap();
+    ffmpeg_next::init().unwrap();
     loop {
-        let c = b.process(
-            &mut f,
-            &Settings {
-                frame_num: i,
-                w: 1920,
-                h: 1080,
-            },
-            &json::json!({}),
-        );
+        // let c = b.process(
+        //     &mut f,
+        //     &Settings {
+        //         frame_num: i,
+        //         w: 1920,
+        //         h: 1080,
+        //     },
+        //     &json::json!({}),
+        // );
+        let mut c = true;
+        if i == 7200 {
+            c = false;
+        }
+        f = core_video_editor::backend::ffmpeg::read("1.mp4", i).unwrap();
         println!("{} {}", i, c);
         if !c {
             break;
@@ -86,4 +99,39 @@ fn test_opencv() {
         );
         i += 1;
     }
+    println!("{}", now.elapsed().as_secs_f64())
+}
+
+fn test_ffmpeg_cmd() -> Result<()> {
+    // let (mut reader, writer) = os_pipe::pipe()?;
+    // let a = cmd!(
+    //     "ffmpeg",
+    //     "-hide_banner",
+    //     "-ss",
+    //     "0",
+    //     "-i",
+    //     "1.mp4",
+    //     "-f",
+    //     "rawvideo",
+    //     "-frames:v",
+    //     "1",
+    //     "pipe:"
+    // )
+    // .std
+    // .run()?
+    // .stdout;
+    // let a = String::from_utf8_lossy(&a);
+    // let mut ss = String::new();
+    // reader.read_to_string(&mut ss)?;
+    // .pipe(cmd!("echo"))
+    // .stdout_capture()
+
+    //command.stdout(Stdio::null());
+
+    //handle.wait()?;
+    //reader.read_to_string(&mut out);
+    //println!("{}", out);
+    //println!("{}", a);
+    //println!("{}", ss);
+    Ok(())
 }

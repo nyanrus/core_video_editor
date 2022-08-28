@@ -15,7 +15,11 @@ opencv = "0.66"
 # imageproc = {version="0.23",features = ["rayon"]}
 rayon = "1.5"
 rgb = "0.8"
-ffmpeg-next = "5.1"
+ffmpeg-next = "5.1.1"
+# ac-ffmpeg = "0.17.4"
+anyhow = "1.0"
+# os_pipe = "1.0.1"
+# duct = "0.13.5"
 
 serde_json = "1.0"
 serde = "1.0"
