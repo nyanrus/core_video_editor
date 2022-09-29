@@ -10,7 +10,7 @@ license-file="./COPYING"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-opencv = "0.66"
+opencv = "0.68"
 # image = "0.24"
 # imageproc = {version="0.23",features = ["rayon"]}
 rayon = "1.5"

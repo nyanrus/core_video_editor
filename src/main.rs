@@ -61,7 +61,7 @@ fn test_calc() {
 
 fn test_opencv() {
     let a = IOpenCV {};
-    let mut f = Frame::init(1920, 1080);
+    // let mut f = Frame::init(1920, 1080);
 
     let b = a.in_open_file("1.mp4").unwrap();
     let now = Instant::now();
@@ -69,6 +69,8 @@ fn test_opencv() {
 
     let v = a.out_open_file("2.mp4").unwrap();
     ffmpeg_next::init().unwrap();
+    let mut ctx = core_video_editor::backend::ffmpeg::init("1.mp4");
+    let mut cctx = ctx.ctx;
     loop {
         // let c = b.process(
         //     &mut f,
@@ -80,10 +82,10 @@ fn test_opencv() {
         //     &json::json!({}),
         // );
         let mut c = true;
-        if i == 7200 {
+        if i == 1 {
             c = false;
         }
-        f = core_video_editor::backend::ffmpeg::read("1.mp4", i).unwrap();
+        let mut f = core_video_editor::backend::ffmpeg::read(&mut cctx, i).unwrap();
         println!("{} {}", i, c);
         if !c {
             break;
@@ -91,7 +93,7 @@ fn test_opencv() {
         v.process(
             &mut f,
             &Settings {
-                frame_num: 0,
+                frame_num: i,
                 w: 1920,
                 h: 1080,
             },

@@ -66,7 +66,7 @@ impl OutputInterface for IOpenCV {
     fn out_open_file(&self, file: &str) -> Option<Box<dyn FrameInterface>> {
         match get_video_writer(VideoWriterSetting {
             file_name: file.to_string(),
-            fourcc: u32::from_ne_bytes(*(b"h264" as &[u8; 4])) as i32,
+            fourcc: u32::from_ne_bytes(*(b"mp4v" as &[u8; 4])) as i32,
             fps: 30.,
             frame_size: FrameSize {
                 width: 1920,
@@ -230,26 +230,41 @@ impl FrameInterface for CvFrameOut {
 
     fn process(&self, f: &mut Frame, settings: &Settings, json: &json::Value) -> bool {
         // println!("{}", f.vec_rgba.len());
-        let mut v = f
+        let v = f
             .vec_rgba
             .par_iter()
             .flat_map_iter(|x| [x[2], x[1], x[0]])
             .collect::<Vec<u8>>();
 
-        let b = unsafe {
-            Mat::new_size_with_data(
-                cv::core::Size_ {
-                    width: f.w as i32,
-                    height: f.h as i32,
-                },
-                cv::core::CV_8UC3,
-                v.as_mut_ptr() as *mut c_void,
-                cv::core::Mat_AUTO_STEP,
-            )
+        let mut vec = Vec::<Vec<u8>>::new();
+        for ele in 0..1080 {
+            vec.push(Vec::new());
+            for elee in 0..1920 {
+                vec[ele].push(v[ele * 1920 + elee])
+            }
         }
-        .unwrap();
+        println!("v");
+
+        let b = Mat::from_slice_2d(&vec).unwrap();
+
+        println!("{:?}", b);
+
+        // let b = unsafe {
+        //     Mat::new_size_with_data(
+        //         cv::core::Size_ {
+        //             width: f.w as i32,
+        //             height: f.h as i32,
+        //         },
+        //         cv::core::CV_8UC3,
+        //         v.as_mut_ptr() as *mut c_void,
+        //         cv::core::Mat_AUTO_STEP,
+        //     )
+        // }
+        // .unwrap();
 
         self.vw.lock().unwrap().write(&b).unwrap();
+        self.vw.lock().unwrap().release().unwrap();
+        //drop(b);
         true
     }
 }
