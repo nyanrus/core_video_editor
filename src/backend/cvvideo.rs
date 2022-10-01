@@ -20,6 +20,7 @@ use std::time::Instant;
 
 use crate::io::input::InputInterface;
 use crate::io::output::OutputInterface;
+use cv::core::{Vec3b, Vec3i};
 use cv::videoio::CAP_PROP_FRAME_COUNT;
 
 use serde_json as json;
@@ -66,7 +67,7 @@ impl OutputInterface for IOpenCV {
     fn out_open_file(&self, file: &str) -> Option<Box<dyn FrameInterface>> {
         match get_video_writer(VideoWriterSetting {
             file_name: file.to_string(),
-            fourcc: u32::from_ne_bytes(*(b"mp4v" as &[u8; 4])) as i32,
+            fourcc: u32::from_ne_bytes(*(b"DIVX" as &[u8; 4])) as i32,
             fps: 30.,
             frame_size: FrameSize {
                 width: 1920,
@@ -236,11 +237,15 @@ impl FrameInterface for CvFrameOut {
             .flat_map_iter(|x| [x[2], x[1], x[0]])
             .collect::<Vec<u8>>();
 
-        let mut vec = Vec::<Vec<u8>>::new();
-        for ele in 0..1080 {
+        let mut vec = Vec::<Vec<Vec3b>>::new();
+        for ele in 0..settings.h {
             vec.push(Vec::new());
-            for elee in 0..1920 {
-                vec[ele].push(v[ele * 1920 + elee])
+            for elee in 0..settings.w {
+                vec[ele].push(Vec3b::from([
+                    v[ele * 3 * 1920 + elee * 3],
+                    v[ele * 3 * 1920 + elee * 3 + 1],
+                    v[ele * 3 * 1920 + elee * 3 + 2],
+                ]));
             }
         }
         println!("v");
@@ -263,14 +268,14 @@ impl FrameInterface for CvFrameOut {
         // .unwrap();
 
         self.vw.lock().unwrap().write(&b).unwrap();
-        self.vw.lock().unwrap().release().unwrap();
+        //self.vw.lock().unwrap().release().unwrap();
         //drop(b);
         true
     }
 }
 
-impl Drop for CvFrameOut {
-    fn drop(&mut self) {
-        self.vw.lock().unwrap().release().unwrap();
-    }
-}
+// impl Drop for CvFrameOut {
+//     fn drop(&mut self) {
+//         self.vw.lock().unwrap().release().unwrap();
+//     }
+// }

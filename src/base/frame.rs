@@ -29,7 +29,7 @@ impl Frame {
         Self {
             w,
             h,
-            vec_rgba: Vec::<[u8; 4]>::with_capacity(w * h),
+            vec_rgba: Vec::<[u8; 4]>::new(),
         }
     }
 }

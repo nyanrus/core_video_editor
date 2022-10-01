@@ -42,9 +42,9 @@ pub struct ffctx_input {
 
 pub fn init(path: &str) -> ffctx_input {
     match format::input(&path) {
-        Ok(o) => return ffctx_input { ctx: o },
+        Ok(o) => ffctx_input { ctx: o },
         Err(_) => todo!(),
-    };
+    }
 }
 
 pub fn read(
