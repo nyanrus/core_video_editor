@@ -14,13 +14,11 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::ffi::c_void;
 use std::sync::Mutex;
-use std::time::Instant;
 
 use crate::io::input::InputInterface;
 use crate::io::output::OutputInterface;
-use cv::core::{Vec3b, Vec3i};
+use cv::core::Vec3b;
 use cv::videoio::CAP_PROP_FRAME_COUNT;
 
 use serde_json as json;
@@ -48,23 +46,23 @@ pub struct FrameSize {
 
 pub struct IOpenCV {}
 
-impl InputInterface for IOpenCV {
-    fn in_open_file(&self, file: &str) -> Option<Box<dyn FrameInterface>> {
+impl InputInterface<Frame> for IOpenCV {
+    fn in_open_file(&self, file: &str) -> Option<Box<dyn FrameInterface<Frame>>> {
         match get_video_capture(file) {
             Ok(mut o) => {
                 o.set(CAP_PROP_BUFFERSIZE, 2.0).unwrap();
                 Some(Box::new(CvFrameIn {
                     id: Ulid::new(),
                     vc: Mutex::new(o),
-                }) as Box<dyn FrameInterface>)
+                }) as Box<dyn FrameInterface<Frame>>)
             }
             Err(_) => None,
         }
     }
 }
 
-impl OutputInterface for IOpenCV {
-    fn out_open_file(&self, file: &str) -> Option<Box<dyn FrameInterface>> {
+impl OutputInterface<Frame> for IOpenCV {
+    fn out_open_file(&self, file: &str) -> Option<Box<dyn FrameInterface<Frame>>> {
         match get_video_writer(VideoWriterSetting {
             file_name: file.to_string(),
             fourcc: u32::from_ne_bytes(*(b"DIVX" as &[u8; 4])) as i32,
@@ -78,7 +76,7 @@ impl OutputInterface for IOpenCV {
             Ok(o) => Some(Box::new(CvFrameOut {
                 id: Ulid::new(),
                 vw: Mutex::new(o),
-            }) as Box<dyn FrameInterface>),
+            }) as Box<dyn FrameInterface<Frame>>),
             Err(_) => None,
         }
     }
@@ -125,7 +123,7 @@ pub struct CvFrameIn {
     pub vc: Mutex<VideoCapture>,
 }
 
-impl FrameInterface for CvFrameIn {
+impl FrameInterface<Frame> for CvFrameIn {
     fn get_settings(&self) -> json::Value {
         json::json!("{'frame_num':0}")
     }
@@ -220,7 +218,7 @@ struct CvFrameOut {
     pub vw: Mutex<VideoWriter>,
 }
 
-impl FrameInterface for CvFrameOut {
+impl FrameInterface<Frame> for CvFrameOut {
     fn get_settings(&self) -> json::Value {
         todo!()
     }
@@ -252,7 +250,7 @@ impl FrameInterface for CvFrameOut {
 
         let b = Mat::from_slice_2d(&vec).unwrap();
 
-        println!("{:?}", b);
+        // println!("{:?}", b);
 
         // let b = unsafe {
         //     Mat::new_size_with_data(

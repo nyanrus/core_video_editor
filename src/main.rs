@@ -25,26 +25,19 @@
 // }
 
 // use duct::cmd;
-use std::io::BufReader;
 use std::time::Instant;
-use std::{io::prelude::*, process::Stdio};
-
 //mod frame;
 //use frame::cvvideo;
 
 use anyhow::Result;
-use core_video_editor::{
-    backend::cvvideo::*,
-    base::frame::{Frame, Settings},
-    io::{input::InputInterface, output::OutputInterface},
-};
-use rayon::prelude::*;
+use core_video_editor::{backend::cvvideo::*, base::frame::Settings, io::output::OutputInterface};
 use serde_json as json;
 
 fn main() {
     test_opencv();
 }
 
+#[allow(dead_code)]
 fn test_calc() {
     println!();
     let mut a = Vec::<f32>::with_capacity(1920 * 1080);
@@ -63,73 +56,75 @@ fn test_opencv() {
     let a = IOpenCV {};
     // let mut f = Frame::init(1920, 1080);
 
-    let b = a.in_open_file("1.mp4").unwrap();
+    //let b = a.in_open_file("1.mp4").unwrap();
     let now = Instant::now();
     let mut i = 0;
 
     let v = a.out_open_file("2.mp4").unwrap();
     ffmpeg_next::init().unwrap();
-    let ctx = core_video_editor::backend::ffmpeg::init("1.mp4");
-    let mut cctx = ctx.ctx;
-    let mut f = core_video_editor::backend::ffmpeg::read(&mut cctx, 0).unwrap();
-    image::DynamicImage::ImageRgba8(
-        image::RgbaImage::from_vec(
-            1920,
-            1080,
-            f.vec_rgba
-                .par_iter()
-                .flatten_iter()
-                .map(|x| *x)
-                .collect::<Vec<u8>>(),
-        )
-        .unwrap(),
-    )
-    .save("a.png")
-    .unwrap();
+    let mut ctx = core_video_editor::backend::ffmpeg::init("1.mp4");
+    // let mut f = core_video_editor::backend::ffmpeg::read(&mut cctx, 0).unwrap();
+    // image::DynamicImage::ImageRgba8(
+    //     image::RgbaImage::from_vec(
+    //         1920,
+    //         1080,
+    //         f.vec_rgba
+    //             .par_iter()
+    //             .flatten_iter()
+    //             .map(|x| *x)
+    //             .collect::<Vec<u8>>(),
+    //     )
+    //     .unwrap(),
+    // )
+    // .save("a.png")
+    // .unwrap();
 
-    v.process(
-        &mut f,
-        &Settings {
-            frame_num: 0,
-            w: 1920,
-            h: 1080,
-        },
-        &json::json!({}),
-    );
-    drop(v);
-    // loop {
-    //     // let c = b.process(
-    //     //     &mut f,
-    //     //     &Settings {
-    //     //         frame_num: i,
-    //     //         w: 1920,
-    //     //         h: 1080,
-    //     //     },
-    //     //     &json::json!({}),
-    //     // );
-    //     let mut c = true;
-    //     if i == 1 {
-    //         c = false;
-    //     }
+    // v.process(
+    //     &mut f,
+    //     &Settings {
+    //         frame_num: 0,
+    //         w: 1920,
+    //         h: 1080,
+    //     },
+    //     &json::json!({}),
+    // );
+    // drop(v);
+    loop {
+        // let c = b.process(
+        //     &mut f,
+        //     &Settings {
+        //         frame_num: i,
+        //         w: 1920,
+        //         h: 1080,
+        //     },
+        //     &json::json!({}),
+        // );
+        let mut c = true;
+        if i == 7200 {
+            c = false;
+        }
 
-    //     println!("{} {}", i, c);
-    //     if !c {
-    //         break;
-    //     }
-    //     v.process(
-    //         &mut f,
-    //         &Settings {
-    //             frame_num: i,
-    //             w: 1920,
-    //             h: 1080,
-    //         },
-    //         &json::json!({}),
-    //     );
-    //     i += 1;
-    // }
+        let mut f = core_video_editor::backend::ffmpeg::read(&mut ctx, i).unwrap();
+
+        println!("{} {}", i, c);
+        if !c {
+            break;
+        }
+        v.process(
+            &mut f,
+            &Settings {
+                frame_num: i,
+                w: 1920,
+                h: 1080,
+            },
+            &json::json!({}),
+        );
+        i += 1;
+    }
     println!("{}", now.elapsed().as_secs_f64())
 }
 
+#[allow(dead_code)]
 fn test_ffmpeg_cmd() -> Result<()> {
     // let (mut reader, writer) = os_pipe::pipe()?;
     // let a = cmd!(

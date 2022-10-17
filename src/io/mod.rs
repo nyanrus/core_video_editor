@@ -18,21 +18,21 @@ use crate::base::frame::FrameInterface;
 
 pub mod input {
     use super::FrameInterface;
-    pub trait InputInterface {
-        fn in_open_file(&self, file: &str) -> Option<Box<dyn FrameInterface>>;
+    pub trait InputInterface<T> {
+        fn in_open_file(&self, file: &str) -> Option<Box<dyn FrameInterface<T>>>;
     }
 }
 pub mod output {
     use super::FrameInterface;
-    pub trait OutputInterface {
-        fn out_open_file(&self, file: &str) -> Option<Box<dyn FrameInterface>>;
+    pub trait OutputInterface<T> {
+        fn out_open_file(&self, file: &str) -> Option<Box<dyn FrameInterface<T>>>;
     }
 }
 
 pub mod filter {
     use super::FrameInterface;
 
-    pub trait FilterInterface {
-        fn get_fi(&self) -> Box<dyn FrameInterface>;
+    pub trait FilterInterface<T> {
+        fn get_fi(&self) -> Box<dyn FrameInterface<T>>;
     }
 }

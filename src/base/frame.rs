@@ -34,10 +34,10 @@ impl Frame {
     }
 }
 
-pub trait FrameInterface {
+pub trait FrameInterface<T> {
     fn get_settings(&self) -> json::Value; //JSON template
     fn get_ulid(&self) -> Ulid;
-    fn process(&self, f: &mut Frame, settings: &Settings, json: &json::Value) -> bool;
+    fn process(&self, f: &mut T, settings: &Settings, json: &json::Value) -> bool;
 }
 
 pub struct Settings {

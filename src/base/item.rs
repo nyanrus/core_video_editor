@@ -21,12 +21,12 @@ use ulid::Ulid;
 
 use super::frame::*;
 
-pub enum ItemChild {
-    FI(Box<dyn FrameInterface + Send + Sync>),
-    Item(Box<Item>),
+pub enum ItemChild<T> {
+    FI(Box<dyn FrameInterface<T> + Send + Sync>),
+    Item(Box<Item<T>>),
 }
 
-impl FrameInterface for ItemChild {
+impl FrameInterface<Frame> for ItemChild<Frame> {
     fn get_settings(&self) -> json::Value {
         match self {
             ItemChild::FI(fi) => fi.get_settings(),
@@ -49,12 +49,12 @@ impl FrameInterface for ItemChild {
     }
 }
 
-pub struct Item {
+pub struct Item<T> {
     pub id: Ulid,
-    pub map_child: HashMap<Ulid, ItemChild>,
+    pub map_child: HashMap<Ulid, ItemChild<T>>,
 }
 
-impl Default for Item {
+impl Default for Item<Frame> {
     fn default() -> Self {
         Self {
             id: Ulid::new(),
@@ -64,23 +64,23 @@ impl Default for Item {
 }
 
 #[allow(dead_code)]
-impl Item {
-    fn add_child(&mut self, parent: &mut Item, child: ItemChild) -> Ulid {
+impl Item<Frame> {
+    fn add_child(&mut self, parent: &mut Item<Frame>, child: ItemChild<Frame>) -> Ulid {
         let c_id = child.get_ulid();
         parent.map_child.insert(c_id, child);
         c_id
     }
 
-    fn del_child(&mut self, parent: &mut Item, child_id: &Ulid) {
+    fn del_child(&mut self, parent: &mut Item<Frame>, child_id: &Ulid) {
         parent.map_child.remove(child_id);
     }
 }
 
-impl FrameInterface for Item {
+impl FrameInterface<Frame> for Item<Frame> {
     fn get_settings(&self) -> json::Value {
         let a = json::json!("[]");
         self.map_child.iter().for_each(|(&i, v)| match v {
-            ItemChild::FI(f) => todo!(),
+            ItemChild::FI(_f) => todo!(),
             ItemChild::Item(item) => {
                 let m = json::Map::from_iter(HashMap::from([(i.to_string(), item.get_settings())]));
                 let _ = a.as_array().insert(&vec![json::Value::Object(m)]);

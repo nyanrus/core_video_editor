@@ -1,13 +1,13 @@
+use std::sync::Mutex;
+
 use anyhow::Result;
-use ffmpeg::ffi::avformat_seek_file;
-use ffmpeg::format::{self, input, Pixel};
+use ffmpeg::ffi::{avformat_seek_file, AVSEEK_FLAG_BACKWARD};
+use ffmpeg::format::{self, Pixel};
 use ffmpeg::media::Type;
 
-use ffmpeg::software::scaling::{context::Context, flag::Flags};
+use ffmpeg::software::scaling::flag::Flags;
 use ffmpeg::util::frame::video::Video;
-use ffmpeg::{Packet, Stream};
 use ffmpeg_next as ffmpeg;
-use opencv::highgui::set_opengl_context;
 use rayon::prelude::*;
 
 use crate::base::frame::Frame;
@@ -17,7 +17,7 @@ fn pts2time(pts: i64, time_base: (i32, i32)) -> f64 {
 }
 
 fn time2pts(time: f64, time_base: (i32, i32)) -> i64 {
-    (time * time_base.1 as f64 / time_base.0 as f64) as i64
+    (time * time_base.1 as f64 / time_base.0 as f64).round() as i64
 }
 
 fn frame_num2time(frame_num: u32, fps: f64) -> f64 {
@@ -25,7 +25,7 @@ fn frame_num2time(frame_num: u32, fps: f64) -> f64 {
 }
 
 fn time2frame_num(time: f64, fps: f64) -> u32 {
-    (time * fps) as u32
+    (time * fps).round() as u32
 }
 
 fn pts2frame_num(pts: i64, time_base: (i32, i32), fps: f64) -> u32 {
@@ -36,22 +36,28 @@ fn frame_num2pts(frame_num: u32, time_base: (i32, i32), fps: f64) -> i64 {
     time2pts(frame_num2time(frame_num, fps), time_base)
 }
 
-pub struct ffctx_input {
-    pub ctx: format::context::Input,
+pub struct FFctxInput {
+    pub ctx: Mutex<format::context::Input>,
+    pub last_ts: i64,
 }
 
-pub fn init(path: &str) -> ffctx_input {
+pub fn init(path: &str) -> FFctxInput {
     match format::input(&path) {
-        Ok(o) => ffctx_input { ctx: o },
+        Ok(o) => FFctxInput {
+            ctx: Mutex::new(o),
+            last_ts: -1,
+        },
         Err(_) => todo!(),
     }
 }
 
 pub fn read(
-    o: &mut ffmpeg::format::context::Input,
+    //o: &mut ffmpeg::format::context::Input,
+    ctx: &mut FFctxInput,
     num: usize,
 ) -> Result<crate::base::frame::Frame> {
     //o.seek(num, ..).unwrap();
+    let o = ctx.ctx.get_mut().unwrap();
 
     let a = o.streams().best(Type::Video).unwrap();
     let mut v = Video::empty();
@@ -71,9 +77,9 @@ pub fn read(
         Flags::BILINEAR,
     )?;
 
-    let mut f_rgb = Video::empty();
+    //let f_rgb = Video::empty();
 
-    let nb_st = o.nb_streams();
+    //let nb_st = o.nb_streams();
 
     let tb = a.time_base();
 
@@ -82,20 +88,49 @@ pub fn read(
     println!("{}", num);
 
     let ts = frame_num2pts(num as u32, (tb.0, tb.1), fr);
-    println!("ts:{}", ts);
-    println!("framenum from ts:{}", pts2frame_num(ts, (tb.0, tb.1), fr));
+    println!(
+        "ts: {} , ts->f_num: {}",
+        ts,
+        pts2frame_num(ts, (tb.0, tb.1), fr)
+    );
 
-    o.seek(ts, i64::min_value()..ts).unwrap();
+    // o.seek(ts, i64::min_value()..ts).unwrap();
 
-    let pkts = o.packets().collect::<Vec<(Stream, Packet)>>();
+    unsafe {
+        if 0 > avformat_seek_file(
+            o.as_mut_ptr(),
+            video_stream_index as i32,
+            i64::min_value(),
+            ts,
+            ts,
+            AVSEEK_FLAG_BACKWARD,
+        ) {
+            panic!("")
+        }
+    }
+
+    let pkts = o.packets();
 
     let mut b = false;
 
-    for i in pkts.iter() {
+    let mut foobool = true;
+
+    for i in pkts {
         if i.0.index() == video_stream_index {
             decoder.send_packet(&i.1).unwrap();
             while decoder.receive_frame(&mut v).is_ok() {
+                //println!("yes ok!");
+                if foobool {
+                    foobool = false;
+                    println!(
+                        "key_ts, {} , key_ts->f_num, {}",
+                        v.pts().unwrap(),
+                        pts2frame_num(v.pts().unwrap(), (tb.0, tb.1), fr)
+                    );
+                }
+                //println!("vpts {}", v.pts().unwrap());
                 if v.pts().unwrap() == ts {
+                    //println!("b is true!");
                     b = true;
                     break;
                 }
@@ -105,7 +140,9 @@ pub fn read(
             }
         }
     }
+
     decoder.send_eof().unwrap();
+
     if !b {
         while decoder.receive_frame(&mut v).is_ok() {
             if v.pts().unwrap() == ts {
@@ -114,11 +151,12 @@ pub fn read(
             }
         }
     }
-    decoder.flush();
 
+    decoder.flush();
     if !b {
         panic!("irregular")
     }
+    ctx.last_ts = ts;
 
     // if false {
     //     let bar = o
@@ -242,7 +280,7 @@ pub fn read(
 
     let mut fff = Frame::init(decoder.width() as usize, decoder.height() as usize);
 
-    println!("wow");
+    //println!("wow");
 
     //println!("{:?}", v.data(0));
 
@@ -255,7 +293,7 @@ pub fn read(
         .map(|x| [x[0], x[1], x[2], x[3]])
         .collect_into_vec(&mut fff.vec_rgba);
 
-    println!("{}", fff.vec_rgba.len());
+    //println!("{}", fff.vec_rgba.len());
 
     println!("end");
     Ok(fff)

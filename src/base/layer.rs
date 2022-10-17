@@ -14,40 +14,38 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::collections::HashMap;
-
-use ulid::Ulid;
-
 use super::{
-    frame::{self, FrameInterface},
+    frame::{self, Frame, FrameInterface},
     item,
 };
+use std::collections::HashMap;
+use ulid::Ulid;
 
-pub struct Layer {
+pub struct Layer<T> {
     pub id: Ulid,
     pub name: String,
-    pub map_item: HashMap<Ulid, LayerItem>,
+    pub map_item: HashMap<Ulid, LayerItem<T>>,
 }
 
-pub struct LayerItem {
-    pub item: item::Item,
+pub struct LayerItem<T> {
+    pub item: item::Item<T>,
     pub lr: (usize, usize),
 }
 
 #[allow(dead_code)]
-impl Layer {
+impl Layer<Frame> {
     fn get_item_by_num(&self, frame_num: usize) -> Option<&Ulid> {
         return match self
             .map_item
             .iter()
-            .find(|(id, item)| item.lr.0 <= frame_num && item.lr.1 > frame_num)
+            .find(|(_, item)| item.lr.0 <= frame_num && item.lr.1 > frame_num)
         {
             Some(s) => Some(s.0),
             None => None,
         };
     }
 
-    fn add(&mut self, layer_item: LayerItem) -> Ulid {
+    fn add(&mut self, layer_item: LayerItem<Frame>) -> Ulid {
         let id = layer_item.item.get_ulid();
         self.map_item.insert(id, layer_item);
         id
@@ -57,15 +55,15 @@ impl Layer {
         self.map_item.remove(id);
     }
 
-    fn get(&self, id: &Ulid) -> Option<&LayerItem> {
+    fn get(&self, id: &Ulid) -> Option<&LayerItem<Frame>> {
         self.map_item.get(id)
     }
 
-    fn get_mut(&mut self, id: &Ulid) -> Option<&mut LayerItem> {
+    fn get_mut(&mut self, id: &Ulid) -> Option<&mut LayerItem<Frame>> {
         self.map_item.get_mut(id)
     }
 
-    fn mov(&mut self, id: &Ulid, layer: usize, lr: (usize, usize)) -> bool {
+    fn mov(&mut self, id: &Ulid, lr: (usize, usize)) -> bool {
         let non_collid = !self.map_item.iter().any(|f| Self::is_collid(lr, f.1.lr));
 
         if non_collid {
@@ -80,7 +78,7 @@ impl Layer {
     }
 }
 
-impl FrameInterface for Layer {
+impl FrameInterface<Frame> for Layer<Frame> {
     fn get_settings(&self) -> serde_json::Value {
         todo!()
     }
@@ -97,7 +95,7 @@ impl FrameInterface for Layer {
     ) -> bool {
         match self.get_item_by_num(settings.frame_num) {
             Some(s) => {
-                let a: &LayerItem = &self.map_item[s];
+                let a: &LayerItem<Frame> = &self.map_item[s];
                 a.item.process(f, settings, json)
             }
             None => false,

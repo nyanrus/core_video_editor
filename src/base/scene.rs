@@ -26,10 +26,10 @@ use ulid::Ulid;
 
 struct Scene {
     id: Ulid,
-    map: HashMap<Ulid, Layer>,
+    map: HashMap<Ulid, Layer<Frame>>,
 }
 
-impl FrameInterface for Scene {
+impl FrameInterface<Frame> for Scene {
     fn get_settings(&self) -> json::Value {
         let a = json::json!("[]");
         self.map.iter().for_each(|(&i, v)| {
