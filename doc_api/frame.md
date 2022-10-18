@@ -28,10 +28,11 @@ config 設定で json5 を受け付ける
 
 ```json5
 {
-  a: [ //配列なので順番が崩れることはない
+  config: [ //配列なので順番が崩れることはない
     {
+      name:"a" //値の名前  ASCIIOnly 推奨
       default: 0, //デフォルトの値、型の検知もこれで
-      value: 0, //変わる値
+      //value: 0, //変わる値
       scripts : [
         { // 言語設定がlangに当てはまらない場合、一番最初のものを表示する。
           lang:["en-us","en"],//言語 RFC-4646準拠 複数指定可
@@ -52,5 +53,18 @@ config 設定で json5 を受け付ける
       ],
     },
   ],
+}
+```
+
+実際にプロジェクトに保存される形
+
+```json5
+{
+  settings:[
+    {
+      name:"a" // configのascii 推奨のあれ
+      value:0 // default参照
+    }
+  ]
 }
 ```

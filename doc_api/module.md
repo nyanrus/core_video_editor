@@ -7,3 +7,6 @@ Core 側で Module を登録するか Module 側で登録するかどっちか \
 init を再度呼び出す \
 Core はいま読み込んでいる Module の Array のポインタを ReadOnly で渡す \
 Core 側でチェック後 Module 側で再チェック必要性あるのかわからない。
+
+Rust は固定的な abi を持たないので`extern "C"`をするか `https://crates.io/crates/abi_stable`に頼ることになる。
+`extern "C"`のほうが C/C++の API がある言語たちが参戦できていいのだが、`Vec<T>`などで揉めることになりそう。

@@ -6,7 +6,7 @@
 [
   'type:{
     ulid:"",
-    settings:[{}], //frame_io.md 参照
+    settings:[{}], //frame.md 参照
     child:[
       'type:{
         ulid:"",

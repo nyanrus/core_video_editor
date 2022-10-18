@@ -24,12 +24,12 @@ use super::{
 use serde_json as json;
 use ulid::Ulid;
 
-struct Scene {
+struct Scene<T> {
     id: Ulid,
-    map: HashMap<Ulid, Layer<Frame>>,
+    map: HashMap<Ulid, Layer<T>>,
 }
 
-impl FrameInterface<Frame> for Scene {
+impl FrameInterface<Frame> for Scene<Frame> {
     fn get_settings(&self) -> json::Value {
         let a = json::json!("[]");
         self.map.iter().for_each(|(&i, v)| {
