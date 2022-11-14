@@ -12,11 +12,11 @@ use rayon::prelude::*;
 
 use crate::base::frame::Frame;
 
-fn pts2time(pts: i64, time_base: (i32, i32)) -> f64 {
+fn ts2time(pts: i64, time_base: (i32, i32)) -> f64 {
     pts as f64 * time_base.0 as f64 / time_base.1 as f64
 }
 
-fn time2pts(time: f64, time_base: (i32, i32)) -> i64 {
+fn time2ts(time: f64, time_base: (i32, i32)) -> i64 {
     (time * time_base.1 as f64 / time_base.0 as f64).round() as i64
 }
 
@@ -28,25 +28,43 @@ fn time2frame_num(time: f64, fps: f64) -> u32 {
     (time * fps).round() as u32
 }
 
-fn pts2frame_num(pts: i64, time_base: (i32, i32), fps: f64) -> u32 {
-    time2frame_num(pts2time(pts, time_base), fps)
+fn ts2frame_num(pts: i64, time_base: (i32, i32), fps: f64) -> u32 {
+    time2frame_num(ts2time(pts, time_base), fps)
 }
 
-fn frame_num2pts(frame_num: u32, time_base: (i32, i32), fps: f64) -> i64 {
-    time2pts(frame_num2time(frame_num, fps), time_base)
+fn frame_num2ts(frame_num: u32, time_base: (i32, i32), fps: f64) -> i64 {
+    time2ts(frame_num2time(frame_num, fps), time_base)
 }
 
 pub struct FFctxInput {
     pub ctx: Mutex<format::context::Input>,
-    pub last_ts: i64,
+    pub last_pts: i64,
+    pub video_decoder: ffmpeg::decoder::Video,
+    pub scaler: ffmpeg::software::scaling::Context,
 }
 
-pub fn init(path: &str) -> FFctxInput {
+pub fn init(path: &str) -> Result<FFctxInput> {
     match format::input(&path) {
-        Ok(o) => FFctxInput {
-            ctx: Mutex::new(o),
-            last_ts: -1,
-        },
+        Ok(o) => {
+            let a = o.streams().best(Type::Video).unwrap();
+            let context_decoder = ffmpeg::codec::context::Context::from_parameters(a.parameters())?;
+            let decoder = context_decoder.decoder().video()?;
+            let scaler = ffmpeg::software::scaling::Context::get(
+                decoder.format(),
+                decoder.width(),
+                decoder.height(),
+                Pixel::RGBA,
+                decoder.width(),
+                decoder.height(),
+                Flags::BILINEAR,
+            )?;
+            Ok(FFctxInput {
+                ctx: Mutex::new(o),
+                last_pts: -1,
+                video_decoder: decoder,
+                scaler,
+            })
+        }
         Err(_) => todo!(),
     }
 }
@@ -60,26 +78,8 @@ pub fn read(
     let o = ctx.ctx.get_mut().unwrap();
 
     let a = o.streams().best(Type::Video).unwrap();
-    let mut v = Video::empty();
-    let context_decoder = ffmpeg::codec::context::Context::from_parameters(a.parameters())?;
-    let mut decoder = context_decoder.decoder().video()?;
+
     let video_stream_index = a.index();
-
-    //println!("{:?}", decoder.format());
-
-    let mut scaler = ffmpeg::software::scaling::Context::get(
-        decoder.format(),
-        decoder.width(),
-        decoder.height(),
-        Pixel::RGBA,
-        decoder.width(),
-        decoder.height(),
-        Flags::BILINEAR,
-    )?;
-
-    //let f_rgb = Video::empty();
-
-    //let nb_st = o.nb_streams();
 
     let tb = a.time_base();
 
@@ -87,25 +87,28 @@ pub fn read(
     let fr = afr.0 as f64 / afr.1 as f64;
     println!("{}", num);
 
-    let ts = frame_num2pts(num as u32, (tb.0, tb.1), fr);
+    let pts = frame_num2ts(num as u32, (tb.0, tb.1), fr);
     println!(
-        "ts: {} , ts->f_num: {}",
-        ts,
-        pts2frame_num(ts, (tb.0, tb.1), fr)
+        "pts: {} , pts->f_num: {}",
+        pts,
+        ts2frame_num(pts, (tb.0, tb.1), fr)
     );
 
     // o.seek(ts, i64::min_value()..ts).unwrap();
 
-    unsafe {
-        if 0 > avformat_seek_file(
-            o.as_mut_ptr(),
-            video_stream_index as i32,
-            i64::min_value(),
-            ts,
-            ts,
-            AVSEEK_FLAG_BACKWARD,
-        ) {
-            panic!("")
+    if ctx.last_pts >= pts {
+        println!("seek");
+        unsafe {
+            if 0 > avformat_seek_file(
+                o.as_mut_ptr(),
+                video_stream_index as i32,
+                i64::min_value(),
+                pts,
+                pts,
+                AVSEEK_FLAG_BACKWARD,
+            ) {
+                panic!("")
+            }
         }
     }
 
@@ -115,176 +118,77 @@ pub fn read(
 
     let mut foobool = true;
 
-    for i in pkts {
-        if i.0.index() == video_stream_index {
-            decoder.send_packet(&i.1).unwrap();
-            while decoder.receive_frame(&mut v).is_ok() {
-                //println!("yes ok!");
-                if foobool {
-                    foobool = false;
-                    println!(
-                        "key_ts, {} , key_ts->f_num, {}",
-                        v.pts().unwrap(),
-                        pts2frame_num(v.pts().unwrap(), (tb.0, tb.1), fr)
-                    );
+    let decoder = &mut ctx.video_decoder;
+
+    let mut v = Video::empty();
+
+    while decoder.receive_frame(&mut v).is_ok() {
+        //println!("yes ok!");
+        if foobool {
+            foobool = false;
+            println!(
+                "key_ts, {} , key_ts->f_num, {}",
+                v.pts().unwrap(),
+                ts2frame_num(v.pts().unwrap(), (tb.0, tb.1), fr)
+            );
+        }
+        //println!("vpts {}", v.pts().unwrap());
+        if v.pts().unwrap() == pts {
+            //println!("b is true!");
+            ctx.last_pts = pts;
+            b = true;
+            break;
+        }
+    }
+    if !b {
+        for i in pkts {
+            if i.0.index() == video_stream_index {
+                decoder.send_packet(&i.1).unwrap();
+                while decoder.receive_frame(&mut v).is_ok() {
+                    //println!("yes ok!");
+                    if foobool {
+                        foobool = false;
+                        println!(
+                            "key_ts, {} , key_ts->f_num, {}",
+                            v.pts().unwrap(),
+                            ts2frame_num(v.pts().unwrap(), (tb.0, tb.1), fr)
+                        );
+                    }
+                    //println!("vpts {}", v.pts().unwrap());
+                    if v.pts().unwrap() == pts {
+                        //println!("b is true!");
+                        ctx.last_pts = pts;
+                        b = true;
+                        break;
+                    }
                 }
-                //println!("vpts {}", v.pts().unwrap());
-                if v.pts().unwrap() == ts {
-                    //println!("b is true!");
-                    b = true;
+                if b {
                     break;
                 }
-            }
-            if b {
-                break;
             }
         }
     }
 
-    decoder.send_eof().unwrap();
-
     if !b {
+        decoder.send_eof().unwrap();
         while decoder.receive_frame(&mut v).is_ok() {
-            if v.pts().unwrap() == ts {
+            if v.pts().unwrap() == pts {
                 b = true;
                 break;
             }
         }
     }
 
-    decoder.flush();
     if !b {
+        decoder.flush();
         panic!("irregular")
     }
-    ctx.last_ts = ts;
-
-    // if false {
-    //     let bar = o
-    //         .packets()
-    //         .enumerate()
-    //         .map(|(_, x)| x)
-    //         .collect::<Vec<(Stream, Packet)>>();
-
-    //     let mut left_i = num;
-
-    //     //let mut i = num * nb_st as usize;
-
-    //     let mut num_i = 0;
-    //     let mut ii = 0;
-
-    //     loop {
-    //         if bar[num_i].0.index() == video_stream_index {
-    //             if ii == num {
-    //                 break;
-    //             }
-    //             ii += 1;
-    //         }
-    //         num_i += 1;
-    //     }
-
-    //     let mut i = num_i;
-
-    //     //println!("i : {}", i);
-
-    //     loop {
-    //         if bar[i].0.index() == video_stream_index {
-    //             // println!(
-    //             //     "idx {} key {} {} {}",
-    //             //     bar[i].0.index(),
-    //             //     bar[i].1.is_key(),
-    //             //     left_i,
-    //             //     i,
-    //             //     //bar[i].1
-    //             // );
-    //             if bar[i].1.is_key() {
-    //                 break;
-    //             }
-    //             left_i -= 1;
-    //         }
-    //         if i == 0 {
-    //             panic!("59 panic");
-    //         }
-    //         i -= 1;
-    //     }
-
-    //     let foo = bar
-    //         .iter()
-    //         .enumerate()
-    //         .filter(|(i, x)| (left_i) * nb_st as usize <= *i)
-    //         .map(|(_, x)| x)
-    //         .collect::<Vec<&(Stream, Packet)>>();
-
-    //     println!("{} {}", foo.len(), num * nb_st as usize);
-
-    //     //println!("{} {}", num, left_i);
-
-    //     let f_idx = left_i;
-    //     let mut ff_idx = left_i;
-
-    //     //println!("{}", f_idx);
-    //     let i = foo.iter();
-
-    //     let mut b = false;
-
-    //     for (stream, packet) in i {
-    //         if stream.index() == video_stream_index {
-    //             //println!("{}", packet.is_key());
-    //             //println!("{}", packet.is_corrupt());
-
-    //             decoder.send_packet(packet).unwrap();
-    //             while decoder.receive_frame(&mut v).is_ok() {
-    //                 if ff_idx != num {
-    //                     ff_idx += 1;
-    //                     //println!("{:?}", v.pts());
-    //                     //println!("{}", ff_idx);
-    //                     continue;
-    //                 }
-    //                 scaler.run(&v, &mut f_rgb)?;
-    //                 ff_idx += 1;
-    //                 b = true;
-    //                 break;
-    //             }
-
-    //             if b {
-    //                 break;
-    //             }
-    //             //println!("send");
-    //         }
-    //     }
-    //     decoder.send_eof().unwrap();
-
-    //     loop {
-    //         if b {
-    //             break;
-    //         }
-    //         while decoder.receive_frame(&mut v).is_ok() {
-    //             if ff_idx != num {
-    //                 ff_idx += 1;
-    //                 println!("{:?}", v.pts());
-    //                 //println!("{}", ff_idx);
-    //                 continue;
-    //             }
-    //             scaler.run(&v, &mut f_rgb)?;
-    //             //decoder.send_eof().unwrap();
-    //             ff_idx += 1;
-
-    //             break;
-    //         }
-
-    //         if ff_idx > num {
-    //             break;
-    //         }
-    //     }
-    //     decoder.flush();
-    // }
 
     let mut fff = Frame::init(decoder.width() as usize, decoder.height() as usize);
 
-    //println!("wow");
-
-    //println!("{:?}", v.data(0));
-
     let mut vvv = Video::empty();
+
+    let scaler = &mut ctx.scaler;
 
     scaler.run(&v, &mut vvv).unwrap();
 

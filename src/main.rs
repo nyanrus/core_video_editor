@@ -62,43 +62,8 @@ fn test_opencv() {
 
     let v = a.out_open_file("2.mp4").unwrap();
     ffmpeg_next::init().unwrap();
-    let mut ctx = core_video_editor::backend::ffmpeg::init("1.mp4");
-    // let mut f = core_video_editor::backend::ffmpeg::read(&mut cctx, 0).unwrap();
-    // image::DynamicImage::ImageRgba8(
-    //     image::RgbaImage::from_vec(
-    //         1920,
-    //         1080,
-    //         f.vec_rgba
-    //             .par_iter()
-    //             .flatten_iter()
-    //             .map(|x| *x)
-    //             .collect::<Vec<u8>>(),
-    //     )
-    //     .unwrap(),
-    // )
-    // .save("a.png")
-    // .unwrap();
-
-    // v.process(
-    //     &mut f,
-    //     &Settings {
-    //         frame_num: 0,
-    //         w: 1920,
-    //         h: 1080,
-    //     },
-    //     &json::json!({}),
-    // );
-    // drop(v);
+    let mut ctx = core_video_editor::backend::ffmpeg::init("1.mp4").unwrap();
     loop {
-        // let c = b.process(
-        //     &mut f,
-        //     &Settings {
-        //         frame_num: i,
-        //         w: 1920,
-        //         h: 1080,
-        //     },
-        //     &json::json!({}),
-        // );
         let mut c = true;
         if i == 7200 {
             c = false;
