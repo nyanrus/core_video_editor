@@ -18,7 +18,7 @@ use super::*;
 use ffmpeg::ffi::AVFormatContext;
 
 pub fn read_video(ctx: &mut FFInput, index: usize, time: f64, frame: &mut Frame) -> Result<bool> {
-    let o = ctx.ctx.get_mut().unwrap();
+    let input = ctx.ctx.get_mut().unwrap();
     let video = match ctx
         .children
         .get_mut(index)
@@ -27,7 +27,6 @@ pub fn read_video(ctx: &mut FFInput, index: usize, time: f64, frame: &mut Frame)
         FFInputChild::Video(v) => v,
         FFInputChild::Audio(_) => return Err(anyhow!("audio index in read_video")),
     };
-    let video_stream_index = video.index;
 
     let avg_frame_rate = video.afr.0 as f64 / video.afr.1 as f64;
     let pts = time2ts(time, (video.tb.0, video.tb.1));
@@ -43,23 +42,25 @@ pub fn read_video(ctx: &mut FFInput, index: usize, time: f64, frame: &mut Frame)
         println!("seek");
         video.decoder.flush();
         unsafe {
-            seek(o.as_mut_ptr(), video_stream_index as i32, pts)?;
+            seek(input.as_mut_ptr(), video.index as i32, pts)?;
         }
     }
 
-    let pkts = o.packets();
+    let pkts = input.packets();
     let mut v = Video::empty();
     let decoder = &mut video.decoder;
     let mut b = read_raw_frame(&mut v, None, decoder, true, pts)?;
 
     if !b {
         'outer: for i in pkts {
-            match i.0.index().cmp(&video_stream_index) {
+            match i.0.index().cmp(&video.index) {
                 std::cmp::Ordering::Less => (),
                 std::cmp::Ordering::Equal => {
                     b = read_raw_frame(&mut v, Some(&i.1), decoder, false, pts)?;
                     if b {
                         break 'outer;
+                    } else {
+                        panic!("found packets but can't accquire frame in video");
                     }
                 }
                 std::cmp::Ordering::Greater => return Ok(false),
@@ -106,6 +107,15 @@ pub fn read_audio(
 
     let pts = time2ts(time, audio.tb);
 
+    //if requested timestamp <= last timestamp that read
+    if audio.last_pts >= pts {
+        println!("seek");
+        audio.decoder.flush();
+        unsafe {
+            seek(input.as_mut_ptr(), audio.index as i32, pts)?;
+        }
+    }
+
     println!("audio_tb : {}", audio.tb);
 
     let mut b = read_raw_frame(&mut a, None, &mut audio.decoder, true, pts)?;
@@ -116,9 +126,11 @@ pub fn read_audio(
                 match s.index().cmp(&audio.index) {
                     std::cmp::Ordering::Less => (),
                     std::cmp::Ordering::Equal => {
-                        b = read_raw_frame(&mut a, Some(&p), &mut audio.decoder, false, 48000)?;
+                        b = read_raw_frame(&mut a, Some(&p), &mut audio.decoder, false, pts)?;
                         if b {
                             break 'outer;
+                        } else {
+                            panic!("found packets but can't accquire frame in audio");
                         }
                     }
                     std::cmp::Ordering::Greater => return Ok(false),
