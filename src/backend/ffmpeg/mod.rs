@@ -77,12 +77,16 @@ impl FFInput {
                         let context_decoder =
                             ffmpeg::codec::context::Context::from_parameters(i.parameters())?;
                         let decoder = context_decoder.decoder().video()?;
-                        let scaler = scaler(
+                        let scaler = scaling::Context::get(
+                            decoder.format(),
+                            decoder.width(),
+                            decoder.height(),
                             Pixel::RGBA,
+                            decoder.width(),
+                            decoder.height(),
                             scaling::flag::Flags::BILINEAR,
-                            (decoder.width(), decoder.height()),
-                            (decoder.width(), decoder.height()),
                         )?;
+
                         vec.push(FFInputChild::Video(FFVideo {
                             last_pts: -1,
                             tb: i.time_base(),
