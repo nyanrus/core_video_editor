@@ -14,34 +14,34 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::{
-    base::frame::Frame,
-    io::{filter::FilterInterface, input::InputInterface, output::OutputInterface},
-};
+use crate::io::{filter::FilterInterface, input::InputInterface, output::OutputInterface};
 
-pub enum FiChild<T> {
-    Input(Box<dyn InputInterface<T>>),
-    Output(Box<dyn OutputInterface<T>>),
-    Filter(Box<dyn FilterInterface<T>>),
+pub enum FiChild<TData, TSettings> {
+    Input(Box<dyn InputInterface<TData, TSettings>>),
+    Output(Box<dyn OutputInterface<TData, TSettings>>),
+    Filter(Box<dyn FilterInterface<TData, TSettings>>),
 }
 
-//FrameInterfaceInfo
-//But using Itemchild, you can use Item too
-pub struct FiInfo<T> {
+//ProcessInterfaceInfo
+pub struct FiInfo<TData, TSettings> {
     pub name: String,
     pub authors: Box<[String]>,
     pub url: Box<[String]>,
     pub version: String,
     pub tag: Box<[String]>,
-    pub fi: FiChild<T>,
+    pub fi: FiChild<TData, TSettings>,
 }
 
-pub struct FiManager<T> {
-    pub vec_info: Vec<FiInfo<T>>,
+pub struct FiManager<TData, TSettings> {
+    pub vec_info: Vec<FiInfo<TData, TSettings>>,
 }
 
-impl FiManager<Frame> {
-    pub fn register(&mut self, info: FiInfo<Frame>) {
+pub trait FiManage<TData, TSettings> {
+    fn register(&mut self, info: FiInfo<TData, TSettings>);
+}
+
+impl<TData: Sized, TSettings: Sized> FiManage<TData, TSettings> for FiManager<TData, TSettings> {
+    fn register(&mut self, info: FiInfo<TData, TSettings>) {
         self.vec_info.push(info);
     }
 }

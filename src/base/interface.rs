@@ -14,8 +14,11 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-pub mod frame;
-pub mod interface;
-pub mod item;
-pub mod layer;
-pub mod scene;
+use serde_json as json;
+use ulid::Ulid;
+
+pub trait ProcessInterface<TData, TSettings> {
+    fn get_json_template(&self) -> json::Value; //Setting Template
+    fn get_ulid(&self) -> Ulid;
+    fn process(&mut self, f: &mut TData, settings: &TSettings, json: json::Value) -> bool;
+}

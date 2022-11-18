@@ -15,37 +15,35 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use super::{
-    frame::{self, Frame, FrameInterface},
+    frame::{self, Frame, FrameSettings},
     item,
 };
+use crate::base::interface::ProcessInterface;
+use serde_json as json;
 use std::collections::HashMap;
 use ulid::Ulid;
-
-pub struct Layer<T> {
+pub struct Layer<TData, TSettings> {
     pub id: Ulid,
     pub name: String,
-    pub map_item: HashMap<Ulid, LayerItem<T>>,
+    pub map_item: HashMap<Ulid, LayerItem<TData, TSettings>>,
 }
 
-pub struct LayerItem<T> {
-    pub item: item::Item<T>,
+pub struct LayerItem<TData, TSettings> {
+    pub item: item::Item<TData, TSettings>,
     pub lr: (usize, usize),
 }
 
 #[allow(dead_code)]
-impl Layer<Frame> {
-    fn get_item_by_num(&self, frame_num: usize) -> Option<&Ulid> {
-        return match self
+impl Layer<Frame, FrameSettings> {
+    fn get_item_by_num(&self, frame_num: usize) -> Option<Ulid> {
+        return self
             .map_item
             .iter()
             .find(|(_, item)| item.lr.0 <= frame_num && item.lr.1 > frame_num)
-        {
-            Some(s) => Some(s.0),
-            None => None,
-        };
+            .map(|s| *s.0);
     }
 
-    fn add(&mut self, layer_item: LayerItem<Frame>) -> Ulid {
+    fn add(&mut self, layer_item: LayerItem<Frame, FrameSettings>) -> Ulid {
         let id = layer_item.item.get_ulid();
         self.map_item.insert(id, layer_item);
         id
@@ -55,11 +53,11 @@ impl Layer<Frame> {
         self.map_item.remove(id);
     }
 
-    fn get(&self, id: &Ulid) -> Option<&LayerItem<Frame>> {
+    fn get(&self, id: &Ulid) -> Option<&LayerItem<Frame, FrameSettings>> {
         self.map_item.get(id)
     }
 
-    fn get_mut(&mut self, id: &Ulid) -> Option<&mut LayerItem<Frame>> {
+    fn get_mut(&mut self, id: &Ulid) -> Option<&mut LayerItem<Frame, FrameSettings>> {
         self.map_item.get_mut(id)
     }
 
@@ -78,27 +76,28 @@ impl Layer<Frame> {
     }
 }
 
-impl FrameInterface<Frame> for Layer<Frame> {
-    fn get_settings(&self) -> serde_json::Value {
-        todo!()
-    }
-
+impl ProcessInterface<Frame, FrameSettings> for Layer<Frame, FrameSettings> {
     fn get_ulid(&self) -> Ulid {
         self.id
     }
 
     fn process(
-        &self,
-        f: &mut frame::Frame,
-        settings: &frame::Settings,
-        json: &serde_json::Value,
+        &mut self,
+        f: &mut Frame,
+        settings: &frame::FrameSettings,
+        json: json::Value,
     ) -> bool {
-        match self.get_item_by_num(settings.frame_num) {
+        let id = self.get_item_by_num(settings.frame_num);
+        match id {
             Some(s) => {
-                let a: &LayerItem<Frame> = &self.map_item[s];
+                let a: &mut LayerItem<Frame, FrameSettings> = self.map_item.get_mut(&s).unwrap();
                 a.item.process(f, settings, json)
             }
             None => false,
         }
+    }
+
+    fn get_json_template(&self) -> json::Value {
+        todo!()
     }
 }

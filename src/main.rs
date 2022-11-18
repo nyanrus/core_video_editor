@@ -30,8 +30,7 @@ use std::time::Instant;
 //use frame::cvvideo;
 
 use anyhow::Result;
-use core_video_editor::{backend::cvvideo::*, base::frame::Settings, io::output::OutputInterface};
-use serde_json as json;
+//use core_video_editor::backend::cvvideo::*
 
 fn main() {
     test_opencv();
@@ -53,39 +52,44 @@ fn test_calc() {
 }
 
 fn test_opencv() {
-    let a = IOpenCV {};
+    //let a = IOpenCV {};
     // let mut f = Frame::init(1920, 1080);
 
     //let b = a.in_open_file("1.mp4").unwrap();
     let now = Instant::now();
-    let mut i = 0;
 
-    let v = a.out_open_file("2.mp4").unwrap();
+    //let v = a.out_open_file("2.mp4").unwrap();
     ffmpeg_next::init().unwrap();
-    let mut ctx = core_video_editor::backend::ffmpeg::init("1.mp4").unwrap();
-    loop {
-        let mut c = true;
-        if i == 7200 {
-            c = false;
-        }
+    let mut ctx = core_video_editor::backend::ffmpeg::FFInput::init("1.mp4").unwrap();
+    let b_va = ctx.best_va;
+    let mut aud_vec = Vec::new();
+    core_video_editor::backend::ffmpeg::read::read_audio(&mut ctx, b_va.1, 0., &mut aud_vec)
+        .unwrap();
+    // loop {
+    //     let mut c = true;
+    //     if i == 7200 {
+    //         c = false;
+    //     }
 
-        let mut f = core_video_editor::backend::ffmpeg::read(&mut ctx, i).unwrap();
+    //     let mut f = core_video_editor::base::frame::Frame::init(1920, 1080);
 
-        println!("{} {}", i, c);
-        if !c {
-            break;
-        }
-        v.process(
-            &mut f,
-            &Settings {
-                frame_num: i,
-                w: 1920,
-                h: 1080,
-            },
-            &json::json!({}),
-        );
-        i += 1;
-    }
+    //     core_video_editor::backend::ffmpeg::read::read_video(&mut ctx, b_va.0, i, &mut f).unwrap();
+
+    //     println!("{} {}", i, c);
+    //     if !c {
+    //         break;
+    //     }
+    //     // v.process(
+    //     //     &mut f,
+    //     //     &Settings {
+    //     //         frame_num: i,
+    //     //         w: 1920,
+    //     //         h: 1080,
+    //     //     },
+    //     //     &json::json!({}),
+    //     // );
+    //     i += 1;
+    // }
     println!("{}", now.elapsed().as_secs_f64())
 }
 

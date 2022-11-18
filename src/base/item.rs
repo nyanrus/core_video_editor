@@ -19,18 +19,18 @@ use std::collections::HashMap;
 use serde_json as json;
 use ulid::Ulid;
 
-use super::frame::*;
+use super::{frame::*, interface::ProcessInterface};
 
-pub enum ItemChild<T> {
-    FI(Box<dyn FrameInterface<T> + Send + Sync>),
-    Item(Box<Item<T>>),
+pub enum ItemChild<TData, TSettings> {
+    FI(Box<dyn ProcessInterface<TData, TSettings> + Send + Sync>),
+    Item(Box<Item<TData, TSettings>>),
 }
 
-impl FrameInterface<Frame> for ItemChild<Frame> {
-    fn get_settings(&self) -> json::Value {
+impl ProcessInterface<Frame, FrameSettings> for ItemChild<Frame, FrameSettings> {
+    fn get_json_template(&self) -> json::Value {
         match self {
-            ItemChild::FI(fi) => fi.get_settings(),
-            ItemChild::Item(i) => i.get_settings(),
+            ItemChild::FI(fi) => fi.get_json_template(),
+            ItemChild::Item(i) => i.get_json_template(),
         }
     }
 
@@ -41,7 +41,7 @@ impl FrameInterface<Frame> for ItemChild<Frame> {
         }
     }
 
-    fn process(&self, f: &mut Frame, settings: &Settings, json: &json::Value) -> bool {
+    fn process(&mut self, f: &mut Frame, settings: &FrameSettings, json: json::Value) -> bool {
         match self {
             ItemChild::FI(fi) => fi.process(f, settings, json),
             ItemChild::Item(i) => i.process(f, settings, json),
@@ -49,12 +49,12 @@ impl FrameInterface<Frame> for ItemChild<Frame> {
     }
 }
 
-pub struct Item<T> {
+pub struct Item<TData, TSettings> {
     pub id: Ulid,
-    pub map_child: HashMap<Ulid, ItemChild<T>>,
+    pub map_child: HashMap<Ulid, ItemChild<TData, TSettings>>,
 }
 
-impl Default for Item<Frame> {
+impl Default for Item<Frame, FrameSettings> {
     fn default() -> Self {
         Self {
             id: Ulid::new(),
@@ -64,42 +64,45 @@ impl Default for Item<Frame> {
 }
 
 #[allow(dead_code)]
-impl Item<Frame> {
-    fn add_child(&mut self, parent: &mut Item<Frame>, child: ItemChild<Frame>) -> Ulid {
+impl Item<Frame, FrameSettings> {
+    fn add_child(
+        &mut self,
+        parent: &mut Item<Frame, FrameSettings>,
+        child: ItemChild<Frame, FrameSettings>,
+    ) -> Ulid {
         let c_id = child.get_ulid();
         parent.map_child.insert(c_id, child);
         c_id
     }
 
-    fn del_child(&mut self, parent: &mut Item<Frame>, child_id: &Ulid) {
+    fn del_child(&mut self, parent: &mut Item<Frame, FrameSettings>, child_id: &Ulid) {
         parent.map_child.remove(child_id);
     }
 }
 
-impl FrameInterface<Frame> for Item<Frame> {
-    fn get_settings(&self) -> json::Value {
-        let a = json::json!("[]");
-        self.map_child.iter().for_each(|(&i, v)| match v {
-            ItemChild::FI(_f) => todo!(),
-            ItemChild::Item(item) => {
-                let m = json::Map::from_iter(HashMap::from([(i.to_string(), item.get_settings())]));
-                let _ = a.as_array().insert(&vec![json::Value::Object(m)]);
-            }
-        });
-        a
-    }
-
+impl ProcessInterface<Frame, FrameSettings> for Item<Frame, FrameSettings> {
     fn get_ulid(&self) -> Ulid {
         self.id
     }
 
-    fn process(&self, f: &mut Frame, settings: &Settings, json: &json::Value) -> bool {
+    fn process(&mut self, f: &mut Frame, settings: &FrameSettings, json: json::Value) -> bool {
         if self.map_child.is_empty() {
             return false;
         }
-        self.map_child.iter().for_each(|(_id, child)| {
-            child.process(f, settings, json);
+        self.map_child.iter_mut().for_each(|(_id, child)| {
+            child.process(f, settings, json.clone());
         });
         true
+    }
+
+    fn get_json_template(&self) -> json::Value {
+        let a = json::json!("[]");
+        self.map_child.iter().for_each(|(&_i, v)| match v {
+            ItemChild::FI(_f) => todo!(),
+            ItemChild::Item(item) => {
+                todo!()
+            }
+        });
+        a
     }
 }

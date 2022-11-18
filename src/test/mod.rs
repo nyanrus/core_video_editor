@@ -23,12 +23,12 @@ use crate::backend::cvvideo::{get_video_capture, CvFrameIn};
 use super::base::frame::*;
 
 pub fn a() {
-    let mut vec = Vec::<Box<dyn FrameInterface<Frame>>>::new();
+    let mut vec = Vec::<Box<dyn ProcessInterface<Frame>>>::new();
     let a = CvFrameIn {
         vc: Mutex::new(get_video_capture("test.mp4").unwrap()),
         id: Ulid::new(),
     };
-    vec.push(Box::new(a) as Box<dyn FrameInterface<Frame>>);
+    vec.push(Box::new(a) as Box<dyn ProcessInterface<Frame>>);
     let mut f = Frame::init(1920, 1080);
     for i in vec {
         let _a = i.process(

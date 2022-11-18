@@ -14,14 +14,15 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use std::rc::Rc;
+
 use serde_json as json;
-use ulid::Ulid;
 
 #[derive(Debug, Clone)]
 pub struct Frame {
     pub w: usize, // almost u32 but usize is useful to make vec
     pub h: usize,
-    pub vec_rgba: Vec<[u8; 4]>,
+    pub vec_rgba: Vec<u8>,
 } // RGBA
 
 impl Frame {
@@ -29,19 +30,15 @@ impl Frame {
         Self {
             w,
             h,
-            vec_rgba: Vec::<[u8; 4]>::new(),
+            vec_rgba: Vec::<u8>::new(),
         }
     }
 }
 
-pub trait FrameInterface<T> {
-    fn get_settings(&self) -> json::Value; //JSON template
-    fn get_ulid(&self) -> Ulid;
-    fn process(&self, f: &mut T, settings: &Settings, json: &json::Value) -> bool;
-}
-
-pub struct Settings {
+pub struct FrameSettings {
     pub frame_num: usize,
     pub w: usize,
     pub h: usize,
+    pub child: Option<Vec<Rc<FrameSettings>>>,
+    pub metadata: json::Value,
 }

@@ -16,43 +16,41 @@
 
 use std::collections::HashMap;
 
-use super::{
-    frame::{Frame, FrameInterface},
-    layer::Layer,
-};
-
+use super::frame::FrameSettings;
+use super::interface::ProcessInterface;
+use super::{frame::Frame, layer::Layer};
 use serde_json as json;
 use ulid::Ulid;
 
-struct Scene<T> {
+struct Scene<TData, TSettings> {
     id: Ulid,
-    map: HashMap<Ulid, Layer<T>>,
+    map: HashMap<Ulid, Layer<TData, TSettings>>,
 }
 
-impl FrameInterface<Frame> for Scene<Frame> {
-    fn get_settings(&self) -> json::Value {
-        let a = json::json!("[]");
-        self.map.iter().for_each(|(&i, v)| {
-            let m = json::Map::from_iter(HashMap::from([(i.to_string(), v.get_settings())]));
-            //m.insert(i.to_string(), json::from_str(&v.get_settings()).unwrap());
-            let _ = a.as_array().insert(&vec![json::Value::Object(m)]);
-        });
-        a
-    }
-
+impl ProcessInterface<Frame, FrameSettings> for Scene<Frame, FrameSettings> {
     fn get_ulid(&self) -> Ulid {
         self.id
     }
 
     fn process(
-        &self,
+        &mut self,
         f: &mut Frame,
-        settings: &super::frame::Settings,
-        json: &json::Value,
+        settings: &super::frame::FrameSettings,
+        json: json::Value,
     ) -> bool {
-        for i in &self.map {
-            i.1.process(f, settings, json);
+        for i in &mut self.map {
+            i.1.process(f, settings, json.clone());
         }
         true
+    }
+
+    fn get_json_template(&self) -> json::Value {
+        let a = json::json!("[]");
+        self.map.iter().for_each(|(&i, v)| {
+            let m = json::Map::from_iter(HashMap::from([(i.to_string(), v.get_json_template())]));
+            //m.insert(i.to_string(), json::from_str(&v.get_settings()).unwrap());
+            let _ = a.as_array().insert(&vec![json::Value::Object(m)]);
+        });
+        a
     }
 }

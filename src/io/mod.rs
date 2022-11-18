@@ -14,25 +14,25 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::base::frame::FrameInterface;
+use crate::base::interface::ProcessInterface;
 
 pub mod input {
-    use super::FrameInterface;
-    pub trait InputInterface<T> {
-        fn in_open_file(&self, file: &str) -> Option<Box<dyn FrameInterface<T>>>;
+    use super::ProcessInterface;
+    pub trait InputInterface<TData, TSettings> {
+        fn in_open_file(&self, file: &str) -> Option<Box<dyn ProcessInterface<TData, TSettings>>>;
     }
 }
 pub mod output {
-    use super::FrameInterface;
-    pub trait OutputInterface<T> {
-        fn out_open_file(&self, file: &str) -> Option<Box<dyn FrameInterface<T>>>;
+    use super::ProcessInterface;
+    pub trait OutputInterface<TData, TSettings> {
+        fn out_open_file(&self, file: &str) -> Option<Box<dyn ProcessInterface<TData, TSettings>>>;
     }
 }
 
 pub mod filter {
-    use super::FrameInterface;
+    use super::ProcessInterface;
 
-    pub trait FilterInterface<T> {
-        fn get_fi(&self) -> Box<dyn FrameInterface<T>>;
+    pub trait FilterInterface<TData, TSettings> {
+        fn get_fi(&self) -> Box<dyn ProcessInterface<TData, TSettings>>;
     }
 }

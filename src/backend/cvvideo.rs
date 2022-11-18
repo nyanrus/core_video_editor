@@ -47,14 +47,14 @@ pub struct FrameSize {
 pub struct IOpenCV {}
 
 impl InputInterface<Frame> for IOpenCV {
-    fn in_open_file(&self, file: &str) -> Option<Box<dyn FrameInterface<Frame>>> {
+    fn in_open_file(&self, file: &str) -> Option<Box<dyn ProcessInterface<Frame>>> {
         match get_video_capture(file) {
             Ok(mut o) => {
                 o.set(CAP_PROP_BUFFERSIZE, 2.0).unwrap();
                 Some(Box::new(CvFrameIn {
                     id: Ulid::new(),
                     vc: Mutex::new(o),
-                }) as Box<dyn FrameInterface<Frame>>)
+                }) as Box<dyn ProcessInterface<Frame>>)
             }
             Err(_) => None,
         }
@@ -62,7 +62,7 @@ impl InputInterface<Frame> for IOpenCV {
 }
 
 impl OutputInterface<Frame> for IOpenCV {
-    fn out_open_file(&self, file: &str) -> Option<Box<dyn FrameInterface<Frame>>> {
+    fn out_open_file(&self, file: &str) -> Option<Box<dyn ProcessInterface<Frame>>> {
         match get_video_writer(VideoWriterSetting {
             file_name: file.to_string(),
             fourcc: u32::from_ne_bytes(*(b"DIVX" as &[u8; 4])) as i32,
@@ -76,7 +76,7 @@ impl OutputInterface<Frame> for IOpenCV {
             Ok(o) => Some(Box::new(CvFrameOut {
                 id: Ulid::new(),
                 vw: Mutex::new(o),
-            }) as Box<dyn FrameInterface<Frame>>),
+            }) as Box<dyn ProcessInterface<Frame>>),
             Err(_) => None,
         }
     }
@@ -123,7 +123,7 @@ pub struct CvFrameIn {
     pub vc: Mutex<VideoCapture>,
 }
 
-impl FrameInterface<Frame> for CvFrameIn {
+impl ProcessInterface<Frame> for CvFrameIn {
     fn get_settings(&self) -> json::Value {
         json::json!("{'frame_num':0}")
     }
@@ -191,7 +191,7 @@ pub fn warp_affine(src: &UMat, dst: &mut UMat, m: &dyn ToInputArray) {
     .unwrap();
 }
 
-use crate::base::frame::{Frame, FrameInterface, Settings};
+use crate::base::frame::{Frame, ProcessInterface, Settings};
 
 // pub async fn warp_and_blend(src: &Frame, dst: &mut Frame) {
 //     let s_rgba = src.vec_rgba.par_iter();
@@ -218,7 +218,7 @@ struct CvFrameOut {
     pub vw: Mutex<VideoWriter>,
 }
 
-impl FrameInterface<Frame> for CvFrameOut {
+impl ProcessInterface<Frame> for CvFrameOut {
     fn get_settings(&self) -> json::Value {
         todo!()
     }
