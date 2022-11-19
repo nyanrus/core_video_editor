@@ -14,15 +14,13 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use std::sync::Mutex;
 
 use serde_json as json;
 
-use ffmpeg::ffi::{avformat_seek_file, AVSEEK_FLAG_BACKWARD};
 use ffmpeg::format::{self, Pixel};
-use ffmpeg::frame::Audio;
-use ffmpeg::frame::Video;
+
 use ffmpeg::media::Type;
 use ffmpeg::{software::*, ChannelLayout};
 use ffmpeg::{Rational, Stream};
@@ -143,6 +141,22 @@ impl FFInput {
                 })
             }
             Err(_) => todo!(),
+        }
+    }
+
+    pub fn get_video_elem(&mut self, index: usize) -> Option<&mut FFVideo> {
+        if let Some(FFInputChild::Video(v)) = self.children.get_mut(index) {
+            Some(v)
+        } else {
+            None
+        }
+    }
+
+    pub fn get_audio_elem(&mut self, index: usize) -> Option<&mut FFAudio> {
+        if let Some(FFInputChild::Audio(a)) = self.children.get_mut(index) {
+            Some(a)
+        } else {
+            None
         }
     }
 }

@@ -16,7 +16,7 @@
 use ffmpeg::Rational;
 use ffmpeg_next as ffmpeg;
 
-pub struct NRRational(i32, i32);
+pub struct NRRational(pub i32, pub i32);
 
 impl From<Rational> for NRRational {
     fn from(value: Rational) -> Self {

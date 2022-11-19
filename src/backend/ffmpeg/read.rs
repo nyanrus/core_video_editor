@@ -11,13 +11,30 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 
+use std::cmp::Ordering;
+
+use crate::backend::ffmpeg::FFInputChild;
+use crate::base::frame::Frame;
+
+use anyhow::{anyhow, Result};
+
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
-use super::util::*;
-use super::*;
+use super::{util::*, FFInput};
 use ffmpeg::ffi::AVFormatContext;
+use ffmpeg::ffi::{avformat_seek_file, AVSEEK_FLAG_BACKWARD};
+use ffmpeg::frame::Audio;
+use ffmpeg::frame::Video;
+use ffmpeg_next as ffmpeg;
 
-pub fn read_video(ctx: &mut FFInput, index: usize, time: f64, frame: &mut Frame) -> Result<bool> {
+pub fn read_video_raw(
+    ctx: &mut FFInput,
+    index: usize,
+    time: f64,
+    vec_buf: &mut Vec<Video>,
+    //exact_data: bool,
+) -> Result<Vec<Ordering>> {
+    let buf_index_tmp: Vec<Ordering> = Vec::new();
     let input = ctx.ctx.get_mut().unwrap();
     let video = match ctx
         .children
@@ -31,11 +48,13 @@ pub fn read_video(ctx: &mut FFInput, index: usize, time: f64, frame: &mut Frame)
     let avg_frame_rate = video.afr.0 as f64 / video.afr.1 as f64;
     let pts = time2ts(time, (video.tb.0, video.tb.1));
 
-    println!(
-        "pts: {} , pts->f_num: {}",
-        pts,
-        ts2frame_num(pts, (video.tb.0, video.tb.1), avg_frame_rate)
-    );
+    //println!("vid tb: {:?}, pts: {:?}", video.tb, pts);
+
+    // println!(
+    //     "pts: {} , pts->f_num: {}",
+    //     pts,
+    //     ts2frame_num(pts, (video.tb.0, video.tb.1), avg_frame_rate)
+    // );
 
     //if requested timestamp <= last timestamp that read
     if video.last_pts >= pts {
@@ -45,54 +64,79 @@ pub fn read_video(ctx: &mut FFInput, index: usize, time: f64, frame: &mut Frame)
             seek(input.as_mut_ptr(), video.index as i32, pts)?;
         }
     }
+    println!("pts: {pts}");
 
     let pkts = input.packets();
-    let mut v = Video::empty();
-    let decoder = &mut video.decoder;
-    let mut b = read_raw_frame(&mut v, None, decoder, true, pts)?;
 
-    if !b {
-        'outer: for i in pkts {
-            match i.0.index().cmp(&video.index) {
-                std::cmp::Ordering::Less => (),
-                std::cmp::Ordering::Equal => {
-                    b = read_raw_frame(&mut v, Some(&i.1), decoder, false, pts)?;
-                    if b {
-                        break 'outer;
-                    } else {
-                        panic!("found packets but can't accquire frame in video");
-                    }
+    for (i, v) in vec_buf.iter().enumerate() {
+        match v.pts().unwrap().cmp(&pts) {
+            Ordering::Less => buf_index_tmp.push(Ordering::Less),
+            Ordering::Equal => buf_index_tmp.push(Ordering::Equal),
+            Ordering::Greater => {
+                if i == 0 {
+                    panic!("zero vec greater, seek required")
+                } else {
+                    buf_index_tmp.push(Ordering::Equal)
                 }
-                std::cmp::Ordering::Greater => return Ok(false),
             }
         }
     }
 
-    if !b {
-        b = read_raw_frame(&mut v, None, decoder, false, pts)?;
+    for i in pkts {
+        if i.0.index() == video.index {
+            loop {
+                let mut v = Video::empty();
+                let ord = read_raw_frame(&mut v, Some(&i.1), &mut video.decoder, false, &pts)?;
+                match ord {
+                    Some(s) => {
+                        vec_buf.push(v);
+                        buf_index_tmp.push(s);
+                    }
+                    None => {
+                        if buf_index_tmp.last() != None
+                            && buf_index_tmp.last() != Some(&Ordering::Less)
+                        {
+                            return Ok(buf_index_tmp);
+                        } else {
+                            break;
+                        }
+                    }
+                }
+            }
+        }
     }
 
-    if !b {
-        decoder.flush();
-        panic!("irregular")
+    loop {
+        let mut v = Video::empty();
+        let ord = read_raw_frame(&mut v, None, &mut video.decoder, false, &pts)?;
+        match ord {
+            Some(s) => {
+                vec_buf.push(v);
+                buf_index_tmp.push(s);
+            }
+            None => {
+                if buf_index_tmp.last() != None && buf_index_tmp.last() != Some(&Ordering::Less) {
+                    return Ok(buf_index_tmp);
+                } else {
+                    break;
+                }
+            }
+        }
     }
-    let mut vid = Video::empty();
 
-    video.scaler.run(&v, &mut vid)?;
-
-    frame.vec_rgba = vid.data(0).to_vec();
-
-    println!("end");
-    Ok(true)
+    video.decoder.flush();
+    panic!("irregular");
 }
 
-pub fn read_audio(
+pub fn read_audio_raw(
     ctx: &mut FFInput,
     index: usize,
     time: f64,
-    samples: &mut Vec<f32>,
-) -> Result<bool> {
-    println!("audio");
+    vec_buf: &mut Vec<Audio>,
+) -> Result<Vec<Ordering>> {
+    //TODO: Audio refactor like read_video_raw
+    // println!("audio");
+    let mut audio_vec = Vec::<Audio>::new();
     let mut a = Audio::empty();
     let input = ctx.ctx.get_mut().unwrap();
 
@@ -107,6 +151,8 @@ pub fn read_audio(
 
     let pts = time2ts(time, audio.tb);
 
+    //println!("aud tb: {:?}, pts: {:?}", audio.tb, pts);
+
     //if requested timestamp <= last timestamp that read
     if audio.last_pts >= pts {
         println!("seek");
@@ -116,31 +162,81 @@ pub fn read_audio(
         }
     }
 
-    println!("audio_tb : {}", audio.tb);
+    //println!("audio_tb : {}", audio.tb);
 
-    let mut b = read_raw_frame(&mut a, None, &mut audio.decoder, true, pts)?;
+    let mut b = false;
+    loop {
+        let ord = read_raw_frame(&mut a, None, &mut audio.decoder, true, &pts)?;
+        match ord {
+            Some(s) => match s {
+                Ordering::Less => {
+                    if !exact_data {
+                        b = true;
+                        audio_vec.push(a);
+                        a = Audio::empty();
+                    }
+                }
+                Ordering::Equal => {
+                    b = true;
+                    break;
+                }
+                Ordering::Greater => break,
+            },
+            None => break,
+        }
+    }
+    println!("first_loop_end");
+
+    //let mut b = read_raw_frame(&mut a, None, &mut audio.decoder, true, &pts)?;
 
     if !b {
         'outer: for (s, p) in input.packets() {
             if s.index() == audio.index {
-                match s.index().cmp(&audio.index) {
-                    std::cmp::Ordering::Less => (),
-                    std::cmp::Ordering::Equal => {
-                        b = read_raw_frame(&mut a, Some(&p), &mut audio.decoder, false, pts)?;
-                        if b {
-                            break 'outer;
-                        } else {
-                            panic!("found packets but can't accquire frame in audio");
-                        }
+                loop {
+                    let ord = read_raw_frame(&mut a, Some(&p), &mut audio.decoder, false, &pts)?;
+                    match ord {
+                        Some(s) => match s {
+                            Ordering::Less => {
+                                if !exact_data {
+                                    b = true;
+                                    audio_vec.push(a);
+                                    a = Audio::empty();
+                                }
+                            }
+                            Ordering::Equal => {
+                                b = true;
+                                break 'outer;
+                            }
+                            Ordering::Greater => break 'outer,
+                        },
+                        None => break 'outer,
                     }
-                    std::cmp::Ordering::Greater => return Ok(false),
                 }
             }
         }
     }
 
     if !b {
-        b = read_raw_frame(&mut a, None, &mut audio.decoder, false, pts)?;
+        loop {
+            let ord = read_raw_frame(&mut a, None, &mut audio.decoder, false, &pts)?;
+            match ord {
+                Some(s) => match s {
+                    Ordering::Less => {
+                        if !exact_data {
+                            b = true;
+                            audio_vec.push(a);
+                            a = Audio::empty();
+                        }
+                    }
+                    Ordering::Equal => {
+                        b = true;
+                        break;
+                    }
+                    Ordering::Greater => break,
+                },
+                None => break,
+            }
+        }
     }
 
     if !b {
@@ -167,8 +263,8 @@ pub fn read_raw_frame(
     packet: Option<&ffmpeg::Packet>,
     decoder: &mut ffmpeg::codec::decoder::Opened,
     read_only: bool,
-    ts: i64,
-) -> Result<bool> {
+    ts: &i64,
+) -> Result<Option<Ordering>> {
     if !read_only {
         match packet {
             Some(s) => decoder.send_packet(s)?,
@@ -176,13 +272,11 @@ pub fn read_raw_frame(
         };
     }
 
-    while decoder.receive_frame(frame).is_ok() {
-        println!("{:?}", frame.pts());
-        if frame.pts() == Some(ts) {
-            return Ok(true);
-        }
+    if decoder.receive_frame(frame).is_ok() {
+        println!("read : {}", frame.pts().unwrap());
+        return Ok(Some(frame.pts().unwrap().cmp(ts)));
     }
-    Ok(false)
+    Ok(None)
 }
 
 pub fn get_fps(ctx: &mut FFInput, index: usize) -> NRRational {

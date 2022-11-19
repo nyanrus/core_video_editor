@@ -62,9 +62,9 @@ fn test_opencv() {
     ffmpeg_next::init().unwrap();
     let mut ctx = core_video_editor::backend::ffmpeg::FFInput::init("1.mp4").unwrap();
     let b_va = ctx.best_va;
-    let mut aud_vec = Vec::new();
-    core_video_editor::backend::ffmpeg::read::read_audio(&mut ctx, b_va.1, 0., &mut aud_vec)
-        .unwrap();
+    // let mut aud_vec = Vec::new();
+    // core_video_editor::backend::ffmpeg::read::read_audio(&mut ctx, b_va.1, 0., &mut aud_vec)
+    //     .unwrap();
     // loop {
     //     let mut c = true;
     //     if i == 7200 {
