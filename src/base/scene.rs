@@ -34,7 +34,7 @@ impl ProcessInterface<Frame, FrameSettings> for Scene<Frame, FrameSettings> {
 
     fn process(
         &mut self,
-        f: &mut Frame,
+        f: &mut Box<Frame>,
         settings: &super::frame::FrameSettings,
         json: json::Value,
     ) -> bool {

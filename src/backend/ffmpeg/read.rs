@@ -25,6 +25,7 @@ use ffmpeg_next::{
 use super::{
     base::{FFAudio, FFVideo},
     read_raw::{read_audio_raw, read_video_raw},
+    util::time2ts,
 };
 use crate::base::frame::Frame;
 
@@ -38,6 +39,9 @@ impl FFVideo {
         let mut v = Video::empty();
         frame.vec_rgba.clear();
         let tmp = self.read_video_raw_wrap(input, time)?.clone();
+        if tmp.data(0).is_empty() {
+            return Ok(());
+        }
         self.scaler.run(&tmp, &mut v)?;
         frame.vec_rgba = v.data(0).to_vec();
         Ok(())
@@ -65,7 +69,9 @@ impl FFVideo {
                 }
             }
         }
-        panic!("no data in video")
+        self.cache_buf.insert(-2, Video::empty());
+        Ok(self.cache_buf.get(&-2).unwrap())
+        //panic!("no data in video")
     }
 }
 
@@ -75,14 +81,40 @@ impl FFAudio {
         input: &mut format::context::Input,
         time: f64,
         samples: &mut Vec<f32>,
+        length: f64,
     ) -> Result<()> {
-        let audio_vec = self.read_audio_raw_wrap(input, time)?;
-        samples.clear();
+        let audio_vec = self.read_audio_raw_wrap(input, time, length)?;
+        //samples.clear();
+        let pts = time2ts(time, self.time_base);
+        let pts2 = time2ts(time + length, self.time_base);
+        let mut data = Vec::<f32>::new();
+
+        let (first_pts, last_pts) = (
+            audio_vec.first().unwrap().pts().unwrap(),
+            audio_vec.last().unwrap().pts().unwrap() + audio_vec.last().unwrap().samples() as i64,
+        );
+
         for i in audio_vec {
             let mut a = Audio::empty();
-            self.resampler.run(&i, &mut a)?;
-            samples.append(&mut bytemuck::cast_slice(a.data(0)).to_vec());
+            loop {
+                let result = self.resampler.run(&i, &mut a)?;
+                let mut vec = (bytemuck::cast_slice(a.data(0)) as &[f32]).to_vec();
+                data.append(&mut vec);
+
+                match result {
+                    Some(_s) => self.resampler.flush(&mut a)?,
+                    None => break,
+                };
+            }
         }
+
+        let (first_diff, last_diff) = (pts - first_pts, last_pts - pts2);
+
+        let mut data = data[(first_diff * self.decoder.channels() as i64) as usize
+            ..data.len() - (last_diff * self.decoder.channels() as i64) as usize]
+            .to_vec();
+        //println!("{}", data.len());
+        samples.append(&mut data);
         Ok(())
     }
 
@@ -90,22 +122,45 @@ impl FFAudio {
         &mut self,
         input: &mut format::context::Input,
         time: f64,
+        length: f64,
     ) -> Result<Vec<Audio>> {
-        // let mut last_pts = -1i64;
-        let mut vec = Vec::new();
-        for (i, o) in read_audio_raw(self, input, time)?.iter() {
+        let mut last_pts = -1i64;
+        let mut vec = Vec::<Audio>::new();
+        let pts = time2ts(time, self.time_base);
+        for (i, o) in read_audio_raw(self, input, time + length)?.iter() {
             match o {
                 Ordering::Less => {
-                    vec.push(self.cache_buf.remove(i).unwrap());
-                    // if let Some(s) = self.cache_buf.remove(&last_pts) {
-                    //     vec.push(s)
-                    // }
-                    // last_pts = *i;
+                    if pts >= *i {
+                        self.cache_buf.remove(&last_pts);
+                        last_pts = *i;
+                    } else {
+                        if let Some(s) = self.cache_buf.get(&last_pts) {
+                            vec.push(s.clone());
+                        }
+
+                        last_pts = *i;
+                    }
                 }
-                Ordering::Equal => return Ok(vec),
-                Ordering::Greater => return Ok(vec),
+                Ordering::Equal => {
+                    vec.push(self.cache_buf.get(&last_pts).unwrap().clone());
+                    return Ok(vec);
+                }
+                Ordering::Greater => {
+                    if let Some(s) = self.cache_buf.get(&last_pts) {
+                        vec.push(s.clone());
+                    }
+
+                    vec.push(self.cache_buf.get(i).unwrap().clone());
+                    return Ok(vec);
+                    //println!("last_pts : {}", last_pts);
+                    // return self
+                    //     .cache_buf
+                    //     .get(&last_pts)
+                    //     .ok_or_else(|| anyhow!("Seek Required"));
+                }
             }
         }
-        panic!("no data in audio")
+        Ok(vec)
+        //panic!("no data in audio")
     }
 }

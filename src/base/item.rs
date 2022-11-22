@@ -41,7 +41,7 @@ impl ProcessInterface<Frame, FrameSettings> for ItemChild<Frame, FrameSettings> 
         }
     }
 
-    fn process(&mut self, f: &mut Frame, settings: &FrameSettings, json: json::Value) -> bool {
+    fn process(&mut self, f: &mut Box<Frame>, settings: &FrameSettings, json: json::Value) -> bool {
         match self {
             ItemChild::FI(fi) => fi.process(f, settings, json),
             ItemChild::Item(i) => i.process(f, settings, json),
@@ -85,7 +85,7 @@ impl ProcessInterface<Frame, FrameSettings> for Item<Frame, FrameSettings> {
         self.id
     }
 
-    fn process(&mut self, f: &mut Frame, settings: &FrameSettings, json: json::Value) -> bool {
+    fn process(&mut self, f: &mut Box<Frame>, settings: &FrameSettings, json: json::Value) -> bool {
         if self.map_child.is_empty() {
             return false;
         }

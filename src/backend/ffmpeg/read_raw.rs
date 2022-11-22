@@ -28,6 +28,7 @@ use ffmpeg::frame::{Audio, Video};
 use ffmpeg_next as ffmpeg;
 
 //* before using, seek required!!
+#[allow(unused_assignments)]
 pub fn read_video_raw(
     ctx: &mut FFVideo,
     input: &mut format::context::Input,
@@ -124,6 +125,7 @@ pub fn read_video_raw(
         //println!("loop 3");
         let mut v = Video::empty();
         let ord = read_raw_frame(&mut v, None, &mut video.decoder, false, &pts)?;
+
         let mut is_ge = false;
         match ord {
             Some(s) => {
@@ -145,10 +147,12 @@ pub fn read_video_raw(
     }
 
     video.decoder.flush();
-    panic!("irregular");
+    Ok(buf_index_tmp)
+    //panic!("irregular");
 }
 
 //* before using, seek required!!
+#[allow(unused_assignments)]
 pub fn read_audio_raw(
     ctx: &mut FFAudio,
     input: &mut format::context::Input,
@@ -160,24 +164,10 @@ pub fn read_audio_raw(
 
     let pts = time2ts(time, audio.time_base);
 
-    //println!("aud tb: {:?}, pts: {:?}", audio.tb, pts);
-
     if audio.last_pts >= pts {
         audio.decoder.flush();
         seek(input, audio.index, pts).unwrap();
     }
-
-    //TODO: 移植
-    // //if requested timestamp <= last timestamp that read
-    // if audio.last_pts >= pts {
-    //     println!("seek");
-    //     audio.decoder.flush();
-    //     unsafe {
-    //         seek(input.as_mut_ptr(), audio.index as i32, pts)?;
-    //     }
-    // }
-
-    //println!("audio_tb : {}", audio.tb);
 
     for (i, v) in cache_buf.iter() {
         match v.pts().unwrap().cmp(&pts) {
@@ -193,7 +183,6 @@ pub fn read_audio_raw(
         };
     }
 
-    //let mut b = read_raw_frame(&mut a, None, &mut audio.decoder, true, &pts)?;
     let pkts = input.packets();
 
     for (s, p) in pkts {
@@ -249,11 +238,11 @@ pub fn read_audio_raw(
     }
 
     audio.decoder.flush();
-    panic!("irregular");
+    Ok(buf_index_tmp)
+    //panic!("irregular");
 }
 
 pub fn seek(input: &mut format::context::Input, idx: usize, ts: i64) -> Result<()> {
-    //println!("seek");
     unsafe {
         match av_seek_frame(input.as_mut_ptr(), idx as i32, ts, AVSEEK_FLAG_BACKWARD) {
             0.. => Ok(()),
@@ -277,7 +266,7 @@ pub fn read_raw_frame(
     }
 
     if decoder.receive_frame(frame).is_ok() {
-        //println!("read : {}", frame.pts().unwrap());
+        //println!("frame pts {}", frame.pts().unwrap());
         return Ok(Some(frame.pts().unwrap().cmp(ts)));
     }
     Ok(None)

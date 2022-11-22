@@ -16,13 +16,9 @@
 
 use crate::base::frame::Frame;
 
-
 use image::Rgba32FImage;
-
 use imageproc::geometric_transformations as geo_transform;
-
 use rayon::prelude::*;
-
 
 pub fn a(a: &Frame, b: &Frame) {
     let a = Rgba32FImage::from_vec(

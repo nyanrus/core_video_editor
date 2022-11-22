@@ -83,7 +83,7 @@ impl ProcessInterface<Frame, FrameSettings> for Layer<Frame, FrameSettings> {
 
     fn process(
         &mut self,
-        f: &mut Frame,
+        f: &mut Box<Frame>,
         settings: &frame::FrameSettings,
         json: json::Value,
     ) -> bool {

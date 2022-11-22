@@ -64,6 +64,8 @@ pub struct FFInput {
     pub best_va: (usize, usize),
 }
 
+unsafe impl Send for FFInput {}
+
 impl FFVideo {
     pub fn init(i: Stream) -> Result<Self> {
         let context_decoder = ffmpeg::codec::context::Context::from_parameters(i.parameters())?;
@@ -98,7 +100,7 @@ impl FFAudio {
             (
                 format::Sample::F32(format::sample::Type::Packed),
                 ChannelLayout::STEREO,
-                48000,
+                decoder.rate(),
             ),
         )?;
         Ok(FFAudio {
@@ -178,7 +180,12 @@ impl ProcessInterface<Frame, FrameSettings> for FFInput {
         ulid::Ulid::new()
     }
 
-    fn process(&mut self, f: &mut Frame, settings: &FrameSettings, _json: json::Value) -> bool {
+    fn process(
+        &mut self,
+        f: &mut Box<Frame>,
+        settings: &FrameSettings,
+        _json: json::Value,
+    ) -> bool {
         let v = match &mut self.children[self.best_va.0] {
             FFInputChild::Video(v) => v,
             FFInputChild::Audio(_) => todo!(),
@@ -190,8 +197,45 @@ impl ProcessInterface<Frame, FrameSettings> for FFInput {
             &mut input,
             frame_num2time(settings.frame_num as u32, fps),
             f,
-        )
-        .unwrap();
+        );
+        //.unwrap();
+        true
+    }
+
+    fn get_json_template(&self) -> serde_json::Value {
+        todo!()
+    }
+}
+
+impl ProcessInterface<Vec<f32>, FrameSettings> for FFInput {
+    fn get_ulid(&self) -> ulid::Ulid {
+        ulid::Ulid::new()
+    }
+
+    fn process(
+        &mut self,
+        f: &mut Box<Vec<f32>>,
+        settings: &FrameSettings,
+        _json: json::Value,
+    ) -> bool {
+        let fps = match &mut self.children[self.best_va.0] {
+            FFInputChild::Video(v) => v.afr,
+            FFInputChild::Audio(_) => todo!(),
+        };
+        let a = match &mut self.children[self.best_va.1] {
+            FFInputChild::Video(_) => todo!(),
+            FFInputChild::Audio(a) => a,
+        };
+        //let fps = v.afr;
+        let fps = fps.0 as f64 / fps.1 as f64;
+        let mut input = self.ctx.lock();
+        a.read_audio(
+            &mut input,
+            frame_num2time(settings.frame_num as u32, fps),
+            f,
+            frame_num2time(1, fps),
+        );
+        //.unwrap();
         true
     }
 

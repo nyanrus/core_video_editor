@@ -14,8 +14,16 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use std::num::NonZeroUsize;
+use std::sync::Arc;
+
+use lru::LruCache;
+use parking_lot::Mutex;
+use ulid::Ulid;
+
 use crate::base::frame::FrameSettings;
 use crate::base::{frame::Frame, interface::ProcessInterface};
+use crate::cache::Cached;
 use crate::io::input::InputInterface;
 
 use self::base::FFInput;
@@ -32,6 +40,50 @@ impl InputInterface<Frame, FrameSettings> for FFInit {
         match FFInput::init(_file) {
             Ok(o) => Some(Box::new(o) as Box<dyn ProcessInterface<Frame, FrameSettings>>),
             Err(_e) => None,
+        }
+    }
+}
+
+impl InputInterface<Vec<f32>, FrameSettings> for FFInit {
+    fn in_open_file(
+        &self,
+        _file: &str,
+    ) -> Option<Box<dyn ProcessInterface<Vec<f32>, FrameSettings>>> {
+        match FFInput::init(_file) {
+            Ok(o) => Some(Box::new(o) as Box<dyn ProcessInterface<Vec<f32>, FrameSettings>>),
+            Err(_e) => None,
+        }
+    }
+}
+
+pub struct FFInitCached();
+impl InputInterface<Frame, FrameSettings> for FFInitCached {
+    fn in_open_file(&self, file: &str) -> Option<Box<dyn ProcessInterface<Frame, FrameSettings>>> {
+        match FFInit().in_open_file(file) {
+            Some(s) => Some(Box::new(Cached::<Frame, FrameSettings> {
+                cache_size: 3,
+                interface: Arc::new(Mutex::new(s)),
+                cache_data: Arc::new(Mutex::new(LruCache::new(NonZeroUsize::new(3).unwrap()))),
+                ulid: Ulid::new(),
+            })),
+            None => None,
+        }
+    }
+}
+
+impl InputInterface<Vec<f32>, FrameSettings> for FFInitCached {
+    fn in_open_file(
+        &self,
+        file: &str,
+    ) -> Option<Box<dyn ProcessInterface<Vec<f32>, FrameSettings>>> {
+        match FFInit().in_open_file(file) {
+            Some(s) => Some(Box::new(Cached::<Vec<f32>, FrameSettings> {
+                cache_size: 10,
+                interface: Arc::new(Mutex::new(s)),
+                cache_data: Arc::new(Mutex::new(LruCache::new(NonZeroUsize::new(10).unwrap()))),
+                ulid: Ulid::new(),
+            })),
+            None => None,
         }
     }
 }

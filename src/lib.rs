@@ -16,6 +16,7 @@
 
 pub mod backend;
 pub mod base;
+pub mod cache;
 pub mod io;
 pub mod manager;
 pub mod project;

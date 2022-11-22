@@ -14,9 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::rc::Rc;
-
 use serde_json as json;
+use std::rc::Rc;
 
 #[derive(Debug, Clone)]
 pub struct Frame {
@@ -24,6 +23,8 @@ pub struct Frame {
     pub h: usize,
     pub vec_rgba: Vec<u8>,
 } // RGBA
+
+unsafe impl Send for Frame {}
 
 impl Frame {
     pub fn init(w: usize, h: usize) -> Self {
@@ -35,10 +36,11 @@ impl Frame {
     }
 }
 
+#[derive(Default, Clone)]
 pub struct FrameSettings {
     pub frame_num: usize,
-    pub w: usize,
-    pub h: usize,
     pub child: Option<Vec<Rc<FrameSettings>>>,
     pub metadata: json::Value,
 }
+
+unsafe impl Send for FrameSettings {}
