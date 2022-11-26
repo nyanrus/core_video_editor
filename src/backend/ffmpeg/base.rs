@@ -228,6 +228,7 @@ impl ProcessInterface<Vec<f32>, FrameSettings> for FFInput {
         };
         //let fps = v.afr;
         let fps = fps.0 as f64 / fps.1 as f64;
+        //println!("fps: {}", fps);
         let mut input = self.ctx.lock();
         a.read_audio(
             &mut input,

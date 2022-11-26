@@ -91,7 +91,8 @@ impl FFAudio {
 
         let (first_pts, last_pts) = (
             audio_vec.first().unwrap().pts().unwrap(),
-            audio_vec.last().unwrap().pts().unwrap() + audio_vec.last().unwrap().samples() as i64,
+            audio_vec.last().unwrap().pts().unwrap() + audio_vec.last().unwrap().samples() as i64
+                - 1,
         );
 
         for i in audio_vec {
@@ -110,6 +111,8 @@ impl FFAudio {
 
         let (first_diff, last_diff) = (pts - first_pts, last_pts - pts2);
 
+        //println!("pts: {} {}", first_pts, last_pts);
+
         let mut data = data[(first_diff * self.decoder.channels() as i64) as usize
             ..data.len() - (last_diff * self.decoder.channels() as i64) as usize]
             .to_vec();
@@ -124,6 +127,7 @@ impl FFAudio {
         time: f64,
         length: f64,
     ) -> Result<Vec<Audio>> {
+        //println!("time len : {} {}", time, length);
         let mut last_pts = -1i64;
         let mut vec = Vec::<Audio>::new();
         let pts = time2ts(time, self.time_base);
