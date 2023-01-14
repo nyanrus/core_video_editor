@@ -147,7 +147,7 @@ impl ProcessInterface<Frame> for CvFrameIn {
         true
     }
 
-    fn get_ulid(&self) -> ulid::Ulid {
+    fn get_ulid(&self) -> Result<ulid::Ulid, Box<dyn Error>> {
         self.id
     }
 }
@@ -223,7 +223,7 @@ impl ProcessInterface<Frame> for CvFrameOut {
         todo!()
     }
 
-    fn get_ulid(&self) -> Ulid {
+    fn get_ulid(&self) -> Result<Ulid, Box<dyn Error>> {
         self.id
     }
 

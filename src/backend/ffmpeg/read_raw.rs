@@ -273,7 +273,7 @@ pub fn read_raw_frame(
 }
 
 pub fn get_fps(ctx: &mut FFInput, index: usize) -> NRRational {
-    match &ctx.children[index] {
+    match &ctx.children.borrow()[index] {
         FFInputChild::Video(v) => v.afr.into(),
         FFInputChild::Audio(_) => todo!(),
     }

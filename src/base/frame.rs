@@ -39,7 +39,7 @@ impl Frame {
 #[derive(Default, Clone)]
 pub struct FrameSettings {
     pub frame_num: usize,
-    pub child: Option<Vec<Rc<FrameSettings>>>,
+    pub child: Vec<Rc<FrameSettings>>,
     pub metadata: json::Value,
 }
 

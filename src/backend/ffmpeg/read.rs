@@ -85,8 +85,10 @@ impl FFAudio {
     ) -> Result<()> {
         let audio_vec = self.read_audio_raw_wrap(input, time, length)?;
         //samples.clear();
+
+        //println!("a {} {} {}", time, time + length, length);
         let pts = time2ts(time, self.time_base);
-        let pts2 = time2ts(time + length, self.time_base);
+        let pts2 = time2ts(time + length, self.time_base) - 1;
         let mut data = Vec::<f32>::new();
 
         let (first_pts, last_pts) = (
@@ -106,15 +108,20 @@ impl FFAudio {
                     Some(_s) => self.resampler.flush(&mut a)?,
                     None => break,
                 };
+                let mut vec = (bytemuck::cast_slice(a.data(0)) as &[f32]).to_vec();
+                data.append(&mut vec);
             }
         }
 
+        //println!("p {} {}", pts, pts2);
         let (first_diff, last_diff) = (pts - first_pts, last_pts - pts2);
 
+        // println!("d {} {}", first_diff, last_diff);
         //println!("pts: {} {}", first_pts, last_pts);
 
-        let mut data = data[(first_diff * self.decoder.channels() as i64) as usize
-            ..data.len() - (last_diff * self.decoder.channels() as i64) as usize]
+        let channels = self.decoder.channels() as i64;
+        let mut data = data
+            [(first_diff * channels) as usize..data.len() - (last_diff * channels) as usize]
             .to_vec();
         //println!("{}", data.len());
         samples.append(&mut data);

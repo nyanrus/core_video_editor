@@ -33,24 +33,25 @@ impl ProcessInterface<Frame, FrameSettings> for Scene<Frame, FrameSettings> {
     }
 
     fn process(
-        &mut self,
-        f: &mut Box<Frame>,
+        &self,
+        f: &mut Frame,
         settings: &super::frame::FrameSettings,
         json: json::Value,
-    ) -> bool {
-        for i in &mut self.map {
+    ) -> anyhow::Result<bool> {
+        for i in &self.map {
             i.1.process(f, settings, json.clone());
         }
-        true
+        Ok(true)
     }
 
-    fn get_json_template(&self) -> json::Value {
+    fn get_json_template(&self) -> anyhow::Result<json::Value> {
         let a = json::json!("[]");
-        self.map.iter().for_each(|(&i, v)| {
-            let m = json::Map::from_iter(HashMap::from([(i.to_string(), v.get_json_template())]));
+        for (i, v) in self.map.iter() {
+            //let value = v.get_json_template();
+            let m = json::Map::from_iter(HashMap::from([(i.to_string(), v.get_json_template()?)]));
             //m.insert(i.to_string(), json::from_str(&v.get_settings()).unwrap());
             let _ = a.as_array().insert(&vec![json::Value::Object(m)]);
-        });
-        a
+        }
+        Ok(a)
     }
 }

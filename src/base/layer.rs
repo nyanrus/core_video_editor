@@ -16,7 +16,7 @@
 
 use super::{
     frame::{self, Frame, FrameSettings},
-    item,
+    item::{self, Item},
 };
 use crate::base::interface::ProcessInterface;
 use serde_json as json;
@@ -29,7 +29,7 @@ pub struct Layer<TData, TSettings> {
 }
 
 pub struct LayerItem<TData, TSettings> {
-    pub item: item::Item<TData, TSettings>,
+    pub item: Item<TData, TSettings>,
     pub lr: (usize, usize),
 }
 
@@ -82,22 +82,22 @@ impl ProcessInterface<Frame, FrameSettings> for Layer<Frame, FrameSettings> {
     }
 
     fn process(
-        &mut self,
-        f: &mut Box<Frame>,
+        &self,
+        f: &mut Frame,
         settings: &frame::FrameSettings,
         json: json::Value,
-    ) -> bool {
+    ) -> anyhow::Result<bool> {
         let id = self.get_item_by_num(settings.frame_num);
         match id {
             Some(s) => {
-                let a: &mut LayerItem<Frame, FrameSettings> = self.map_item.get_mut(&s).unwrap();
+                let a: &LayerItem<Frame, FrameSettings> = self.map_item.get(&s).unwrap();
                 a.item.process(f, settings, json)
             }
-            None => false,
+            None => Ok(false),
         }
     }
 
-    fn get_json_template(&self) -> json::Value {
+    fn get_json_template(&self) -> anyhow::Result<json::Value> {
         todo!()
     }
 }

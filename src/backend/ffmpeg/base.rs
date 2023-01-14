@@ -14,6 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use std::cell::RefCell;
 use std::collections::BTreeMap;
 
 use anyhow::Result;
@@ -21,6 +22,7 @@ use ffmpeg::frame::{Audio, Video};
 use parking_lot::Mutex;
 
 use serde_json as json;
+use ulid::Ulid;
 
 use crate::base::frame::{Frame, FrameSettings};
 use crate::base::interface::ProcessInterface;
@@ -60,7 +62,7 @@ pub enum FFInputChild {
 pub struct FFInput {
     pub ctx: Mutex<format::context::Input>,
     pub last_pts: i64,
-    pub children: Vec<FFInputChild>,
+    pub children: RefCell<Vec<FFInputChild>>,
     pub best_va: (usize, usize),
 }
 
@@ -150,7 +152,7 @@ impl FFInput {
                 Ok(FFInput {
                     ctx: Mutex::new(input),
                     last_pts: -1,
-                    children: vec,
+                    children: RefCell::new(vec),
                     best_va: (i_vb, i_ab),
                 })
             }
@@ -159,7 +161,7 @@ impl FFInput {
     }
 
     pub fn get_video_elem(&mut self, index: usize) -> Option<&mut FFVideo> {
-        if let Some(FFInputChild::Video(v)) = self.children.get_mut(index) {
+        if let Some(FFInputChild::Video(v)) = self.children.get_mut().get_mut(index) {
             Some(v)
         } else {
             None
@@ -167,7 +169,7 @@ impl FFInput {
     }
 
     pub fn get_audio_elem(&mut self, index: usize) -> Option<&mut FFAudio> {
-        if let Some(FFInputChild::Audio(a)) = self.children.get_mut(index) {
+        if let Some(FFInputChild::Audio(a)) = self.children.get_mut().get_mut(index) {
             Some(a)
         } else {
             None
@@ -176,17 +178,18 @@ impl FFInput {
 }
 
 impl ProcessInterface<Frame, FrameSettings> for FFInput {
-    fn get_ulid(&self) -> ulid::Ulid {
-        ulid::Ulid::new()
+    fn get_ulid(&self) -> Ulid {
+        Ulid::new()
     }
 
     fn process(
-        &mut self,
-        f: &mut Box<Frame>,
+        &self,
+        f: &mut Frame,
         settings: &FrameSettings,
         _json: json::Value,
-    ) -> bool {
-        let v = match &mut self.children[self.best_va.0] {
+    ) -> anyhow::Result<bool> {
+        let mut vec = self.children.borrow_mut();
+        let v = match &mut vec[self.best_va.0] {
             FFInputChild::Video(v) => v,
             FFInputChild::Audio(_) => todo!(),
         };
@@ -199,33 +202,39 @@ impl ProcessInterface<Frame, FrameSettings> for FFInput {
             f,
         );
         //.unwrap();
-        true
+        Ok(true)
     }
 
-    fn get_json_template(&self) -> serde_json::Value {
+    fn get_json_template(&self) -> anyhow::Result<serde_json::Value> {
         todo!()
     }
 }
 
 impl ProcessInterface<Vec<f32>, FrameSettings> for FFInput {
-    fn get_ulid(&self) -> ulid::Ulid {
-        ulid::Ulid::new()
+    fn get_ulid(&self) -> Ulid {
+        Ulid::new()
     }
 
     fn process(
-        &mut self,
-        f: &mut Box<Vec<f32>>,
+        &self,
+        f: &mut Vec<f32>,
         settings: &FrameSettings,
         _json: json::Value,
-    ) -> bool {
-        let fps = match &mut self.children[self.best_va.0] {
+    ) -> anyhow::Result<bool> {
+        let mut vec = self.children.borrow_mut();
+        let fps = match &mut vec[self.best_va.0] {
             FFInputChild::Video(v) => v.afr,
             FFInputChild::Audio(_) => todo!(),
         };
-        let a = match &mut self.children[self.best_va.1] {
+        let a = match &mut vec[self.best_va.1] {
             FFInputChild::Video(_) => todo!(),
             FFInputChild::Audio(a) => a,
         };
+        // println!(
+        //     "frame num {} {}",
+        //     settings.frame_num,
+        //     frame_num2time(settings.frame_num as u32, f64::from(NRRational::from(fps)))
+        // );
         //let fps = v.afr;
         let fps = fps.0 as f64 / fps.1 as f64;
         //println!("fps: {}", fps);
@@ -237,10 +246,10 @@ impl ProcessInterface<Vec<f32>, FrameSettings> for FFInput {
             frame_num2time(1, fps),
         );
         //.unwrap();
-        true
+        Ok(true)
     }
 
-    fn get_json_template(&self) -> serde_json::Value {
+    fn get_json_template(&self) -> anyhow::Result<serde_json::Value> {
         todo!()
     }
 }

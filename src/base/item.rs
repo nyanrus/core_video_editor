@@ -14,20 +14,21 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 
+use parking_lot::Mutex;
 use serde_json as json;
 use ulid::Ulid;
 
 use super::{frame::*, interface::ProcessInterface};
 
 pub enum ItemChild<TData, TSettings> {
-    FI(Box<dyn ProcessInterface<TData, TSettings> + Send + Sync>),
-    Item(Box<Item<TData, TSettings>>),
+    FI(Arc<dyn ProcessInterface<TData, TSettings> + Send + Sync>),
+    Item(Arc<Item<TData, TSettings>>),
 }
 
 impl ProcessInterface<Frame, FrameSettings> for ItemChild<Frame, FrameSettings> {
-    fn get_json_template(&self) -> json::Value {
+    fn get_json_template(&self) -> anyhow::Result<json::Value> {
         match self {
             ItemChild::FI(fi) => fi.get_json_template(),
             ItemChild::Item(i) => i.get_json_template(),
@@ -41,7 +42,12 @@ impl ProcessInterface<Frame, FrameSettings> for ItemChild<Frame, FrameSettings> 
         }
     }
 
-    fn process(&mut self, f: &mut Box<Frame>, settings: &FrameSettings, json: json::Value) -> bool {
+    fn process(
+        &self,
+        f: &mut Frame,
+        settings: &FrameSettings,
+        json: json::Value,
+    ) -> anyhow::Result<bool> {
         match self {
             ItemChild::FI(fi) => fi.process(f, settings, json),
             ItemChild::Item(i) => i.process(f, settings, json),
@@ -51,32 +57,36 @@ impl ProcessInterface<Frame, FrameSettings> for ItemChild<Frame, FrameSettings> 
 
 pub struct Item<TData, TSettings> {
     pub id: Ulid,
-    pub map_child: HashMap<Ulid, ItemChild<TData, TSettings>>,
+    pub map_child: Arc<Mutex<HashMap<Ulid, ItemChild<TData, TSettings>>>>,
 }
 
 impl Default for Item<Frame, FrameSettings> {
     fn default() -> Self {
         Self {
             id: Ulid::new(),
-            map_child: HashMap::new(),
+            map_child: Arc::new(Mutex::new(HashMap::new())),
         }
     }
 }
 
 #[allow(dead_code)]
 impl Item<Frame, FrameSettings> {
-    fn add_child(
-        &mut self,
-        parent: &mut Item<Frame, FrameSettings>,
-        child: ItemChild<Frame, FrameSettings>,
-    ) -> Ulid {
+    fn add_child(&mut self, child: ItemChild<Frame, FrameSettings>) -> anyhow::Result<Ulid> {
         let c_id = child.get_ulid();
-        parent.map_child.insert(c_id, child);
-        c_id
+
+        match self.map_child.try_lock() {
+            Some(mut o) => o.insert(c_id, child),
+            None => return Err(anyhow::anyhow!("add_child lock_err")),
+        };
+        Ok(c_id)
     }
 
-    fn del_child(&mut self, parent: &mut Item<Frame, FrameSettings>, child_id: &Ulid) {
-        parent.map_child.remove(child_id);
+    fn del_child(&mut self, child_id: &Ulid) -> anyhow::Result<()> {
+        match self.map_child.try_lock() {
+            Some(mut o) => o.remove(child_id),
+            None => return Err(anyhow::anyhow!("del_child lock err")),
+        };
+        Ok(())
     }
 }
 
@@ -85,24 +95,44 @@ impl ProcessInterface<Frame, FrameSettings> for Item<Frame, FrameSettings> {
         self.id
     }
 
-    fn process(&mut self, f: &mut Box<Frame>, settings: &FrameSettings, json: json::Value) -> bool {
-        if self.map_child.is_empty() {
-            return false;
+    fn process(
+        &self,
+        f: &mut Frame,
+        settings: &FrameSettings,
+        json: json::Value,
+    ) -> anyhow::Result<bool> {
+        if self
+            .map_child
+            .try_lock()
+            .expect("item process lock err")
+            .is_empty()
+        {
+            return Ok(false);
         }
-        self.map_child.iter_mut().for_each(|(_id, child)| {
-            child.process(f, settings, json.clone());
-        });
-        true
+        self.map_child
+            .try_lock()
+            .expect("item process lock err")
+            .iter_mut()
+            .for_each(|(_id, child)| {
+                child.process(f, settings, json.clone());
+            });
+        Ok(true)
     }
 
-    fn get_json_template(&self) -> json::Value {
+    fn get_json_template(&self) -> anyhow::Result<json::Value> {
         let a = json::json!("[]");
-        self.map_child.iter().for_each(|(&_i, v)| match v {
-            ItemChild::FI(_f) => todo!(),
-            ItemChild::Item(_item) => {
-                todo!()
+        let bindings = self
+            .map_child
+            .try_lock()
+            .expect("item get_json_template lock err");
+        for (&_i, v) in bindings.iter() {
+            match v {
+                ItemChild::FI(_f) => todo!(),
+                ItemChild::Item(_item) => {
+                    todo!()
+                }
             }
-        });
-        a
+        }
+        Ok(a)
     }
 }

@@ -18,7 +18,12 @@ use serde_json as json;
 use ulid::Ulid;
 
 pub trait ProcessInterface<TData, TSettings>: Send {
-    fn get_json_template(&self) -> json::Value; //Setting Template
+    fn get_json_template(&self) -> anyhow::Result<json::Value>; //Setting Template
     fn get_ulid(&self) -> Ulid;
-    fn process(&mut self, f: &mut Box<TData>, settings: &TSettings, json: json::Value) -> bool;
+    fn process(
+        &self,
+        f: &mut TData,
+        settings: &TSettings,
+        json: json::Value,
+    ) -> anyhow::Result<bool>;
 }

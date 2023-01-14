@@ -30,9 +30,11 @@ pub mod output {
 }
 
 pub mod filter {
+    use std::sync::Arc;
+
     use super::ProcessInterface;
 
     pub trait FilterInterface<TData, TSettings> {
-        fn get_fi(&self) -> Box<dyn ProcessInterface<TData, TSettings>>;
+        fn get_fi(&self) -> Arc<dyn ProcessInterface<TData, TSettings> + Sync>;
     }
 }
