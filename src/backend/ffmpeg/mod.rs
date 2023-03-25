@@ -25,6 +25,7 @@ pub mod base;
 pub mod read;
 pub mod read_raw;
 pub mod util;
+pub mod write_raw;
 
 pub struct FFInit();
 

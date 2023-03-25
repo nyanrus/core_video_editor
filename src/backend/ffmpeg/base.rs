@@ -53,7 +53,6 @@ pub struct FFAudio {
     pub resampler: resampling::Context,
     pub cache_buf: BTreeMap<i64, Audio>,
 }
-
 pub enum FFInputChild {
     Video(FFVideo),
     Audio(FFAudio),

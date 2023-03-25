@@ -14,23 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-// use opencv::{
-// 	core::{self},
-// };
-// opencv::opencv_branch_4! {
-// 	use opencv::core::AccessFlag::ACCESS_READ;
-// }
-// opencv::not_opencv_branch_4! {
-// 	use opencv::core::ACCESS_READ;
-// }
-
-// use duct::cmd;
 use std::time::Instant;
-//mod frame;
-//use frame::cvvideo;
 
 use anyhow::Result;
-//use core_video_editor::backend::cvvideo::*
 
 fn main() {
     test_opencv();

@@ -16,7 +16,7 @@
 
 use super::{
     frame::{self, Frame, FrameSettings},
-    item::{self, Item},
+    item::Item,
 };
 use crate::base::interface::ProcessInterface;
 use serde_json as json;

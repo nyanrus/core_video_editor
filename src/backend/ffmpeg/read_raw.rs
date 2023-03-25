@@ -20,10 +20,10 @@ use super::{
     FFInput,
 };
 use anyhow::Result;
-use ffmpeg::format;
 use std::{cmp::Ordering, collections::BTreeMap};
 
 use ffmpeg::ffi::{av_seek_frame, AVSEEK_FLAG_BACKWARD};
+use ffmpeg::format;
 use ffmpeg::frame::{Audio, Video};
 use ffmpeg_next as ffmpeg;
 
